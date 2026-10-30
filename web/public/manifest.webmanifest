@@ -1,0 +1,27 @@
+{
+  "name": "成分镜 · 化妆品成分表解读",
+  "short_name": "成分镜",
+  "description": "把化妆品成分表按含量顺序翻译成对你的结论，识别概念添加、孕期禁忌与致痘风险。",
+  "lang": "zh-CN",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F4F1E9",
+  "theme_color": "#1F6B5A",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
