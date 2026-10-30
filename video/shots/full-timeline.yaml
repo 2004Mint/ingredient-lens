@@ -1,0 +1,44 @@
+output: out/full-silent.mp4
+size: 1920x1080
+fps: 30
+crf: 18
+transition: false
+fade: { in: 0.5, out: 0.7 }
+card:
+  background: "#151513"
+  color: "#f2efe9"
+  weight: 500
+  fontFamily: "Microsoft YaHei"
+
+items:
+  - card:
+      kicker: "全国高校 AI Web 开发挑战赛 · 本科 B 组"
+      title: "成分镜"
+      subtitle: "拍一下，看懂这瓶适不适合你"
+      duration: 14.966666666666667
+  - clip: out/s1/s1.mp4
+    trim: [0, 48.5]
+  - clip: out/s2/s2.mp4
+    trim: [0, 28.8]
+  - clip: out/s3/s3.mp4
+    trim: [0, 38.93333333333333]
+  - clip: out/s4/s4.mp4
+    trim: [0, 24.5]
+  - clip: out/s5/s5.mp4
+    trim: [0, 14.533333333333333]
+  - clip: out/s6/s6.mp4
+    trim: [0, 20.133333333333333]
+  - clip: out/s7/s7.mp4
+    trim: [0, 39.53333333333333]
+  - clip: out/s8/s8.mp4
+    trim: [0, 42.733333333333334]
+  - clip: out/s9/s9.mp4
+    trim: [0, 28.6]
+  - clip: out/s10/s10.mp4
+    trim: [0, 18.533333333333335]
+  - clip: out/s11/s11.mp4
+    trim: [0, 15.433333333333334]
+  - end:
+      title: "成分镜"
+      subtitle: "只读标签信息，不构成医疗建议"
+      duration: 2.4

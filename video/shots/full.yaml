@@ -1,0 +1,150 @@
+out: out
+
+defaults:
+  viewport: { width: 1440, height: 810 }
+  scale: 1.3333333
+  output: 1920x1080
+  fps: 30
+  crf: 18
+  tail: 200
+  zoom: { level: 1.18, max: 1.5, ramp: 0.65, rampOut: 0.75, hold: 0.9, padding: 0.16 }
+
+shots:
+  - id: s1
+    url: http://127.0.0.1:5173/
+    actions:
+      - wait: 700
+      - scroll: { by: 300, duration: 1600 }
+      - wait: 1000
+      - scroll: { by: -260, duration: 1400 }
+      - wait: 50500
+  - id: s2
+    url: http://127.0.0.1:5173/
+    setup:
+      - click: '.sample:has-text(''美白精华液'')'
+      - wait: 400
+    actions:
+      - wait: 600
+      - camera: '.editor'
+        zoom: 1.1
+        duration: 1200
+        hold: 1500
+      - move: '.count'
+        duration: 700
+      - wait: 900
+      - click: '.preset:has-text("孕期")'
+        zoom: 1.18
+        hold: 1500
+      - wait: 30800
+  - id: s3
+    url: http://127.0.0.1:5173/?demo=1
+    setup:
+      - waitFor: '#ladder'
+      - wait: 700
+    actions:
+      - wait: 600
+      - scroll: { to: '#ladder', block: 'start', duration: 1400 }
+      - wait: 800
+      - camera: '.pill:has-text("烟酰胺")'
+        zoom: 1.25
+        duration: 1200
+        hold: 2600
+      - wait: 15000
+      - click: '.pill:has-text("烟酰胺")'
+        zoom: 1.28
+        hold: 900
+      - wait: 40933
+  - id: s4
+    url: http://127.0.0.1:5173/?demo=1
+    setup:
+      - waitFor: '#report-top'
+      - wait: 700
+    actions:
+      - wait: 600
+      - click: '.bar-btn:has-text("调整档案")'
+        zoom: 1.15
+        hold: 600
+      - wait: 700
+      - click: '.switch-row:has-text("敏感肌")'
+        zoom: 1.2
+        hold: 2400
+      - click: '.switch-row:has-text("敏感肌")'
+        zoom: 1.2
+        hold: 1200
+      - wait: 26500
+  - id: s5
+    url: http://127.0.0.1:5173/?demo=1
+    setup:
+      - waitFor: '#report-top'
+      - wait: 700
+    actions:
+      - wait: 500
+      - scroll: { to: '#report-top', block: 'start', duration: 1200 }
+      - wait: 700
+      - click: '.bar-btn:has-text("分享")'
+        zoom: 1.15
+        hold: 2200
+      - wait: 16533
+  - id: s6
+    url: http://127.0.0.1:5173/
+    actions:
+      - wait: 600
+      - type: { target: '.ta', text: '水 甘油 丙二醇 丁二醇 戊二醇 透明质酸钠 泛醇 苯氧乙醇 羟苯甲酯 烟酰胺', delay: 35 }
+      - wait: 900
+      - click: 'text=按空格切分'
+        zoom: 1.18
+        hold: 2600
+      - wait: 22133
+  - id: s7
+    url: http://127.0.0.1:5173/
+    actions:
+      - wait: 600
+      - type: { target: '.ta', text: '甲乙丙、丁戊己、庚辛壬' }
+      - wait: 500
+      - click: '.cta'
+        zoom: 1.12
+        hold: 1200
+      - wait: 3500
+      - wait: 41533
+  - id: s8
+    url: http://127.0.0.1:5173/#/admin
+    setup:
+      - eval: 'sessionStorage.setItem(''cosme:admin-token'',''026a9ea2278948d0b28aa7f7e59ae51a'');location.reload()'
+      - wait: 1200
+      - waitFor: 'text=研究任务'
+    actions:
+      - wait: 900
+      - click: 'text=研究任务'
+        zoom: 1.12
+        hold: 2600
+      - wait: 800
+      - click: 'text=成分数据'
+        zoom: 1.12
+        hold: 2600
+      - wait: 44733
+  - id: s9
+    url: http://127.0.0.1:8098/vec.html
+    cursor: false
+    actions:
+      - wait: 900
+      - wait: 5200
+      - wait: 1600
+      - wait: 30600
+  - id: s10
+    url: http://127.0.0.1:8098/code.html
+    cursor: false
+    actions:
+      - wait: 900
+      - wait: 6000
+      - wait: 1600
+      - wait: 20533
+  - id: s11
+    url: http://127.0.0.1:5173/?demo=1
+    setup:
+      - waitFor: '#report-top'
+      - wait: 800
+    actions:
+      - wait: 800
+      - scroll: { to: '#report-top', block: 'start', duration: 1200 }
+      - wait: 5200
+      - wait: 17433

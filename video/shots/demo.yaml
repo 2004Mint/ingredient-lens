@@ -1,0 +1,75 @@
+out: out
+
+defaults:
+  viewport: { width: 1440, height: 810 }
+  scale: 1.3333333
+  output: 1920x1080
+  fps: 30
+  crf: 18
+  tail: 260
+  zoom: { level: 1.28, max: 1.6, ramp: 0.7, rampOut: 0.8, hold: 1.0, padding: 0.16 }
+
+shots:
+  # n1: 这是一瓶护肤品背面的成分表。我猜你从来没有把它读完过。 (4.64s)
+  - id: s1-intake
+    url: http://127.0.0.1:5173/
+    setup:
+      - wait: 600
+    actions:
+      - wait: 700
+      - hover: ".sample:has-text('美白精华液')"
+        zoom: 1.22
+        hold: 700
+      - click: ".sample:has-text('美白精华液')"
+        zoom: 1.26
+        hold: 700
+      - wait: 1100
+
+  # n2: 成分镜只做一件事：把这串没人读完的小字，翻译成一句和你有关的结论。 (6.40s)
+  - id: s2-report
+    url: http://127.0.0.1:5173/
+    setup:
+      - wait: 600
+      - click: ".sample:has-text('美白精华液')"
+      - wait: 400
+    actions:
+      - wait: 500
+      - click: ".cta"
+        zoom: 1.2
+        hold: 500
+      - waitFor: "#report-top"
+      - wait: 1200
+      - move: [980, 760]
+        duration: 500
+      - wait: 2600
+
+  # n3: 这瓶主打烟酰胺美白。可它在成分表里排第十二位…… (9.76s)
+  - id: s3-ladder
+    url: http://127.0.0.1:5173/?demo=1
+    setup:
+      - waitFor: "#ladder"
+      - wait: 700
+    actions:
+      - wait: 600
+      - scroll: { to: "#ladder", block: start, duration: 1300 }
+      - wait: 700
+      - camera: ".pill:has-text('烟酰胺')"
+        zoom: 1.5
+        duration: 1100
+        hold: 3000
+      - scroll: { by: 240, duration: 1600 }
+      - wait: 5500
+
+  # n4: 点开任何一个成分，能看到它在这瓶里的排位、作用、风险和别名。 (6.40s)
+  - id: s4-detail
+    url: http://127.0.0.1:5173/?demo=1
+    setup:
+      - waitFor: "#ladder"
+      - wait: 500
+    actions:
+      - scroll: { to: "#ladder", block: start, duration: 900 }
+      - wait: 500
+      - click: ".pill:has-text('烟酰胺')"
+        zoom: 1.4
+        hold: 900
+      - wait: 3100

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>工程质量</title>
+<style>
+  html,body{margin:0;height:100%;background:#151513;color:#F2EFE9;font-family:"Microsoft YaHei","Segoe UI",sans-serif;overflow:hidden}
+  .wrap{padding:56px 92px 210px;height:100%;box-sizing:border-box;display:flex;flex-direction:column}
+  .kicker{font-size:19px;letter-spacing:.22em;color:#8A8378;margin-bottom:22px}
+  h1{font-size:46px;margin:0 0 26px;font-weight:600;letter-spacing:-.02em}
+  h1 em{font-style:normal;color:#9FD3C0}
+  .cols{display:grid;grid-template-columns:1.05fr 1fr;gap:34px;flex:1;min-height:0}
+  .panel{background:#1D1C19;border:1px solid #302E29;border-radius:16px;padding:20px 24px;overflow:hidden}
+  .panel h2{font-size:18px;margin:0 0 12px;color:#A9A296;font-weight:500;letter-spacing:.04em}
+  .tree{font-family:ui-monospace,Consolas,monospace;font-size:16px;line-height:1.72;color:#CFC9BD;white-space:pre}
+  .tree .dim{color:#6E675C}
+  .tree .hl{color:#9FD3C0}
+  .term{font-family:ui-monospace,Consolas,monospace;font-size:16px;line-height:1.68;color:#CFC9BD;white-space:pre-wrap}
+  .term .ok{color:#8FD18F}
+  .term .cmd{color:#E2A03F}
+  .term .dim{color:#6E675C}
+  .stats{display:flex;gap:32px;margin-top:16px;padding-top:14px;border-top:1px solid #2A2823}
+  .stat b{display:block;font-size:29px;color:#9FD3C0;font-weight:600;line-height:1.1}
+  .stat span{font-size:16px;color:#8A8378}
+  .foot{margin-top:20px;font-size:17px;color:#A9A296}
+  .foot b{color:#F2EFE9}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">工程质量 · 可维护性与可信度</div>
+  <h1>能被别人<em>接手</em>，才敢叫产品</h1>
+
+  <div class="cols">
+    <div class="panel">
+      <h2>web/src/components — 20 个组件，零 UI 框架依赖</h2>
+      <div class="tree">├── IntakePanel.vue      <span class="dim">输入 / 实时切分</span>
+├── ProfilePanel.vue     <span class="dim">档案与主操作</span>
+├── ReportView.vue       <span class="hl">报告编排</span>
+├── LadderChart.vue      <span class="hl">梯队图</span>
+├── IngredientDetail.vue <span class="dim">成分详情卡</span>
+├── IngredientsView.vue  <span class="dim">成分库</span>
+└── admin/               <span class="dim">概览 / 成分 / 队列 / API</span></div>
+      <div class="stats">
+        <div class="stat"><b>20</b><span>组件</span></div>
+        <div class="stat"><b>1</b><span>运行时依赖（vue）</span></div>
+        <div class="stat"><b>0</b><span>全局 store</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>server — 规则引擎回归测试</h2>
+      <div class="term"><span class="dim">$</span> <span class="cmd">mvn -q test</span>
+AnalyzeServiceTest
+  <span class="ok">✔</span> 概念添加的排位判断
+  <span class="ok">✔</span> 孕期视黄醇高风险
+  <span class="ok">✔</span> 敏感肌开关改变风险数
+  <span class="ok">✔</span> 未收录成分仍占位
+  <span class="ok">✔</span> 成分表前缀清洗
+  <span class="ok">✔</span> 中文名禁止模糊匹配
+  <span class="ok">✔</span> 150 个成分上限
+<span class="ok">Tests run: 7, Failures: 0, Errors: 0, Skipped: 0</span></div>
+    </div>
+  </div>
+
+  <div class="foot">数据只在本机 · 不接第三方统计 · <b>孕期与敏感史不该被拿去换增长</b></div>
+</div>
+</body>
+</html>

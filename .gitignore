@@ -35,3 +35,10 @@ video/sub/
 
 # 文档截图脚本（一次性工具）
 .docgen/
+
+# 视频流水线：字体、日志、临时变体与生成物
+video/msyh.ttc
+video/*.log
+video/fix2.ps1
+video/demo.srt
+video/durations.json

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>为什么不用向量检索</title>
+<style>
+  html,body{margin:0;height:100%;background:#151513;color:#F2EFE9;font-family:"Microsoft YaHei","Segoe UI",sans-serif;overflow:hidden}
+  .wrap{padding:56px 92px 210px;height:100%;box-sizing:border-box;display:flex;flex-direction:column}
+  .kicker{font-size:20px;letter-spacing:.22em;color:#8A8378;margin-bottom:26px}
+  h1{font-size:46px;margin:0 0 10px;font-weight:600;letter-spacing:-.02em}
+  h1 em{font-style:normal;color:#E2A03F}
+  .lede{font-size:19px;color:#A9A296;margin:0 0 30px;line-height:1.55}
+  .pairs{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  .pair{background:#1D1C19;border:1px solid #302E29;border-radius:16px;padding:22px 26px}
+  .pair .names{display:flex;align-items:center;gap:14px;font-size:27px;font-weight:600}
+  .pair .names .vs{color:#6E675C;font-size:20px;font-weight:400}
+  .pair .notes{display:flex;justify-content:space-between;margin-top:14px;font-size:16px;color:#A9A296}
+  .pair .dist{font-family:ui-monospace,Consolas,monospace;color:#E2A03F}
+  .warn{color:#E0715C}
+  .chain{margin-top:auto;display:flex;align-items:center;gap:12px;font-size:21px}
+  .chain b{background:#22302C;color:#9FD3C0;padding:8px 16px;border-radius:9px;font-weight:600}
+  .chain span{color:#5E574D}
+  .foot{margin-top:18px;font-size:16px;color:#8A8378}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">成分匹配 · 技术决策</div>
+  <h1>名字差一个字，<em>向量空间里几乎重合</em></h1>
+  <p class="lede">语义检索在这里不是精度问题，是安全问题。羟苯甲酯与羟苯丙酯，一个常规防腐剂，一个孕期需谨慎。</p>
+
+  <div class="pairs">
+    <div class="pair">
+      <div class="names">羟苯甲酯 <span class="vs">vs</span> 羟苯丙酯</div>
+      <div class="notes"><span>化妆品防腐剂 / 限量 0.4%</span><span class="dist">cos ≈ 0.97</span></div>
+      <div class="notes"><span class="warn">丙酯：孕期与敏感肌需谨慎</span><span>判定完全不同</span></div>
+    </div>
+    <div class="pair">
+      <div class="names">1,2-丙二醇 <span class="vs">vs</span> 1,2-戊二醇</div>
+      <div class="notes"><span>溶剂 / 保湿</span><span class="dist">cos ≈ 0.96</span></div>
+      <div class="notes"><span class="warn">戊二醇：排位与风险不同</span><span>混淆即误判</span></div>
+    </div>
+  </div>
+
+  <div class="chain">
+    <b>标准名精确匹配</b><span>→</span><b>别名表</b><span>→</span><b>包含匹配</b>
+    <span style="margin-left:14px">编辑距离只对纯英文名开放</span>
+  </div>
+  <div class="foot">中文名宁可判「待补全」，也不张冠李戴 · 宁可漏，不可错</div>
+</div>
+</body>
+</html>
