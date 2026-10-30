@@ -1,0 +1,19 @@
+# 构建产物
+server/target/
+web/node_modules/
+web/dist/
+
+# 运行时
+server/run.log
+server/run.err
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# 密钥（严禁提交）
+.env
+.env.local
+*.local

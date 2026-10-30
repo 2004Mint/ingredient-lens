@@ -1,0 +1,36 @@
+:root {
+  --bg: #F7F5F1;
+  --card: #FFFFFF;
+  --ink: #1C1B19;
+  --ink2: #5F5C57;
+  --ink3: #9A968F;
+  --line: #E8E4DC;
+  --accent: #2E6E63;
+  --accent-soft: #E8F1EE;
+  --danger: #B23B2E;
+  --danger-soft: #FBEBE8;
+  --warn: #A9761F;
+  --warn-soft: #FBF3E2;
+  --good: #3E8E6E;
+  --good-soft: #EAF4EF;
+  --sand: #F1ECE4;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+textarea, input { font-family: inherit; }
+
+.serif {
+  font-family: Georgia, "Songti SC", "SimSun", serif;
+  letter-spacing: 0.01em;
+}

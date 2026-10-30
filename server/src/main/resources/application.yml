@@ -1,0 +1,26 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: cosme-backend
+  http:
+    encoding:
+      charset: UTF-8
+      force: true
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+  mvc:
+    async:
+      request-timeout: 120000
+
+logging:
+  level:
+    root: INFO
+    com.cosme: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss} %-5level %msg%n"
+  charset:
+    console: UTF-8
