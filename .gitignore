@@ -42,3 +42,6 @@ video/*.log
 video/fix2.ps1
 video/demo.srt
 video/durations.json
+
+# 打包产物
+dist/
