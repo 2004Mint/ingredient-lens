@@ -23,6 +23,9 @@ public class AnalyzeService {
         this.repo = repo;
     }
 
+    /** 单次分析最多处理的成分数：防止把整篇宣传语粘进来时把报告撑爆 */
+    private static final int MAX_TOKENS = 150;
+
     public Map<String, Object> analyze(String text, Map<String, Object> profile) {
         String skin = str(profile.get("skin"), "normal");
         boolean sensitive = bool(profile.get("sensitive"));
@@ -31,19 +34,36 @@ public class AnalyzeService {
         List<String> tokens = split(text);
         List<Map<String, Object>> ladder = new ArrayList<>();
         List<String> unknown = new ArrayList<>();
+        // 所有待补全 token（含单字）：研究队列需要每一条都留任务，
+        // unknown 仍保持只收多字 token 的旧语义给报告使用。
+        List<String> unresolved = new ArrayList<>();
         List<Map<String, Object>> raw = new ArrayList<>();
         List<Map<String, Object>> actives = new ArrayList<>();
+        // 完整序列：包含未收录成分。梯队图需要它来还原真实排位，
+        // 否则「第 5 位」会凭空消失，用户会以为排位算错了。
+        List<Map<String, Object>> sequence = new ArrayList<>();
 
         int pos = 0;
+        boolean truncated = false;
         for (String token : tokens) {
             String t = cleanToken(token);
             if (t.isEmpty()) continue;
+            if (pos >= MAX_TOKENS) {
+                truncated = true;
+                break;
+            }
             // 位置按成分表里的真实次序计算：未收录的成分也占一个位置，
             // 否则后面所有成分的排位都会错，而「排第几」正是本产品的核心依据
             int idx = pos++;
             JsonNode ing = repo.match(t);
             if (ing == null) {
+                unresolved.add(t);
                 if (t.length() > 1) unknown.add(t);
+                Map<String, Object> miss = new LinkedHashMap<>();
+                miss.put("name", t);
+                miss.put("index", idx);
+                miss.put("known", false);
+                sequence.add(miss);
                 continue;
             }
             String name = ing.path("n").asText();
@@ -57,6 +77,7 @@ public class AnalyzeService {
             String note = ing.path("nt").asText("");
 
             String tier = idx < 5 ? "core" : idx < 10 ? "middle" : "tail";
+            boolean aiResearched = "ai".equals(ing.path("sr").asText());
 
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("name", name);
@@ -67,7 +88,18 @@ public class AnalyzeService {
             row.put("fn", ing.path("f").asText());
             row.put("comedo", comedo);
             row.put("irrit", irrit);
+            row.put("ai", aiResearched);
             ladder.add(row);
+
+            Map<String, Object> seq = new LinkedHashMap<>();
+            seq.put("name", name);
+            seq.put("index", idx);
+            seq.put("known", true);
+            seq.put("role", role);
+            seq.put("cat", cat);
+            seq.put("tier", tier);
+            seq.put("ai", aiResearched);
+            sequence.add(seq);
 
             // 孕期
             if (pregnant && "avoid".equals(preg)) {
@@ -143,14 +175,18 @@ public class AnalyzeService {
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("ok", true);
-        out.put("total", ladder.size() + unknown.size());
+        out.put("total", sequence.size());
+        out.put("truncated", truncated);
         out.put("matched", ladder.size());
-        out.put("unknownCount", unknown.size());
+        // 未收录数按序列差额算：单字成分不进 unknown 列表，但仍占一个排位
+        out.put("unknownCount", sequence.size() - ladder.size());
         out.put("unknown", unknown);
+        out.put("unresolved", unresolved);
         out.put("verdict", verdict);
         out.put("flags", flags);
         out.put("actives", actives);
         out.put("ladder", ladder);
+        out.put("sequence", sequence);
         out.put("insights", buildInsights(ladder, actives, sensitive));
         out.put("profile", profile);
         out.put("ingredientLibrarySize", repo.size());
@@ -320,7 +356,9 @@ public class AnalyzeService {
     /** 按顿号等切分；先把「1,2-戊二醇」这类数字间的逗号保护起来，避免被切断 */
     private List<String> split(String text) {
         if (text == null) return Collections.emptyList();
-        String s = text.replace("成分表", "").replace("成分：", "").replace("成分:", "");
+        // 先摘掉包装上常见的引导语，再清正文里的标签，顺序反了会留下一个冒号
+        String s = text.replaceFirst("^\\s*(?:全成分|主要成分|成分表|其他微量成分)\\s*[：:]?\\s*", "");
+        s = s.replace("成分表", "").replace("成分：", "").replace("成分:", "");
         s = s.replaceAll("(\\d)[,，](\\d)", "$1\u0001$2");
         String[] parts = s.split("[、，,；;｜|\\n\\r]+");
         List<String> out = new ArrayList<>();
@@ -333,6 +371,8 @@ public class AnalyzeService {
 
     private String cleanToken(String t) {
         String s = t.trim();
+        // 「成分表：水、甘油」这类粘贴最常见：标签被切掉后，第一个成分前面会留下冒号
+        s = s.replaceAll("^[\\s：:·•・\\-—*\\[\\]【】]+", "");
         s = s.replaceAll("^[0-9０-９]{1,3}[.．、)）\\s]+", "");
         s = s.replaceAll("^其他微量成分[:：]?", "");
         return s.trim();
