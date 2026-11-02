@@ -2,14 +2,15 @@
 server/target/
 web/node_modules/
 web/dist/
+dist/
 
-# 运行时
-server/run.log
-server/run.err
+# 运行时日志
+server/run*.log
+server/run*.err
 
-# 本地配置与凭证（视觉 Key、管理密码）
+# 本地数据目录（含视觉 Key、管理密码、分享报告）
+# 统一由 DataPaths 解析到 ~/.cosme/data；仓库内这两个路径是历史遗留，仍然禁止提交
 server/data/
-# IDEA/命令行工作目录不一致时也会在项目根生成 data/，同样不能提交
 data/
 
 # IDE
@@ -33,15 +34,12 @@ video/sub/
 # 沙箱 ACL 恢复备份（环境相关，非项目内容）
 .acl-recovery/
 
-# �ĵ���ͼ�ű���һ���Թ��ߣ�
+# 文档截图脚本（一次性工具）
 .docgen/
 
-# ��Ƶ��ˮ�ߣ����塢��־����ʱ������������
+# 视频流水线：字体、日志、临时变体与生成物
 video/msyh.ttc
 video/*.log
 video/fix2.ps1
 video/demo.srt
 video/durations.json
-
-# �������
-dist/
