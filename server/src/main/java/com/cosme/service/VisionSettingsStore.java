@@ -12,14 +12,14 @@ import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 
 /**
- * 把管理台保存的视觉配置落到 server/data/vision-settings.json。
- * 文件里带明文 Key，所以 data/ 目录已经加入 .gitignore；不要提交。
+ * 把管理台保存的视觉配置落到数据目录下的 vision-settings.json（路径见 {@link DataPaths}）。
+ * 文件里带明文 Key，数据目录不在仓库里，不会误提交。
  */
 @Service
 public class VisionSettingsStore {
 
     private final ObjectMapper om = new ObjectMapper();
-    private final Path dir = Paths.get(System.getProperty("user.dir"), "data");
+    private final Path dir = DataPaths.dir();
     private final Path file = dir.resolve("vision-settings.json");
 
     public Path filePath() {

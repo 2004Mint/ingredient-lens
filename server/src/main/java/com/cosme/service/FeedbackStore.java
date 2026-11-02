@@ -14,7 +14,7 @@ import java.util.*;
 public class FeedbackStore {
 
     private final ObjectMapper om = new ObjectMapper();
-    private final Path dir = Paths.get(System.getProperty("user.dir"), "data");
+    private final Path dir = DataPaths.dir();
     private final Path file = dir.resolve("feedback.jsonl");
 
     public synchronized void append(Map<String, Object> feedback) throws IOException {

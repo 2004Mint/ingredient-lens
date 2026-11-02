@@ -12,14 +12,14 @@ import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 
 /**
- * 把总 API / 视觉 API / 研究 API 落到 server/data/ai-settings.json。
- * 文件里带明文 Key，data/ 已加入 .gitignore。
+ * 把总 API / 视觉 API / 研究 API 落到数据目录下的 ai-settings.json（路径见 {@link DataPaths}）。
+ * 文件里带明文 Key，数据目录不在仓库里，不会误提交。
  */
 @Service
 public class AiSettingsStore {
 
     private final ObjectMapper om = new ObjectMapper();
-    private final Path dir = Paths.get(System.getProperty("user.dir"), "data");
+    private final Path dir = DataPaths.dir();
     private final Path file = dir.resolve("ai-settings.json");
     private final Path legacyFile = dir.resolve("vision-settings.json");
 

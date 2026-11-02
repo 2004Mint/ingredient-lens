@@ -24,7 +24,7 @@ public class ResearchTaskStore {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final ObjectMapper om = new ObjectMapper();
-    private final Path dir = Paths.get(System.getProperty("user.dir"), "data");
+    private final Path dir = DataPaths.dir();
     private final Path file = dir.resolve("research-tasks.json");
 
     private final List<ResearchTask> tasks = new ArrayList<>();

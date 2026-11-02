@@ -26,7 +26,7 @@ public class ReportStore {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final ObjectMapper om = new ObjectMapper();
-    private final Path dir = Paths.get(System.getProperty("user.dir"), "data", "reports");
+    private final Path dir = DataPaths.resolve("reports");
 
     @PostConstruct
     @Scheduled(fixedDelay = 6L * 60 * 60 * 1000)

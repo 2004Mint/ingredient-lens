@@ -34,10 +34,7 @@ public class IngredientRepository {
     private volatile String source = "builtin";
 
     public IngredientRepository() {
-        String custom = System.getProperty("cosme.data.dir");
-        this.dataDir = custom != null && !custom.trim().isEmpty()
-                ? Paths.get(custom)
-                : Paths.get(System.getProperty("user.dir"), "data");
+        this.dataDir = DataPaths.dir();
         this.overrideFile = dataDir.resolve("ingredients.json");
     }
 

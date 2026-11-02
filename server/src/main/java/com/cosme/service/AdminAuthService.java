@@ -28,7 +28,7 @@ public class AdminAuthService {
     private static final long TTL_MS = 12L * 60 * 60 * 1000;
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private final Path dir = Paths.get(System.getProperty("user.dir"), "data");
+    private final Path dir = DataPaths.dir();
     private final Path passwordFile = dir.resolve("admin-password.txt");
     private final Map<String, Long> tokens = new ConcurrentHashMap<>();
 
