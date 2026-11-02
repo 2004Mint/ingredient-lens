@@ -17,6 +17,12 @@ import java.util.*;
 @RequestMapping("/api")
 public class ApiController {
 
+    /** 成分表文本上限：150 个成分大约 3–4 KB，留一倍余量给说明性文字。 */
+    private static final int MAX_TEXT_CHARS = 6000;
+
+    /** 图片 base64 上限：手机原图约 3–8 MB，压缩后通常 300–500 KB；6 MB 足够覆盖未压缩的情况。 */
+    private static final int MAX_IMAGE_BASE64 = 6 * 1024 * 1024;
+
     private final AnalyzeService analyzeService;
     private final VisionService visionService;
     private final IngredientRepository ingredientRepository;
@@ -117,15 +123,23 @@ public class ApiController {
     @PostMapping("/analyze")
     public ResponseEntity<?> analyze(@RequestBody Map<String, Object> body) {
         try {
-            Object text = body.get("text");
-            if (text == null || text.toString().trim().isEmpty()) {
+            Object textValue = body.get("text");
+            if (textValue == null || textValue.toString().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(err("成分表内容不能为空"));
+            }
+            String text = textValue.toString().trim();
+            // 不设上限时，一次 10 MB 的粘贴就能把切分与匹配拖垮；
+            // 150 个成分的完整成分表通常不到 4 KB，6000 字符足够覆盖真实使用。
+            if (text.length() > MAX_TEXT_CHARS) {
+                return ResponseEntity.status(413).body(err(
+                        "成分表太长了（" + text.length() + " 字符，上限 " + MAX_TEXT_CHARS
+                                + "）。请只粘贴成分表部分，不要带上整页商品详情。"));
             }
             @SuppressWarnings("unchecked")
             Map<String, Object> profile = body.get("profile") instanceof Map
                     ? (Map<String, Object>) body.get("profile") : Collections.emptyMap();
 
-            Map<String, Object> report = analyzeService.analyze(text.toString(), profile);
+            Map<String, Object> report = analyzeService.analyze(text, profile);
 
             // 未收录 token 先进入持久化研究队列；worker 在后端异步研究，
             // 不再要求 AI 当场成功，也不会让失败/超限的 token 无声消失。
@@ -137,7 +151,7 @@ public class ApiController {
                     if (item != null && !item.toString().trim().isEmpty()) queries.add(item.toString().trim());
                 }
                 if (!queries.isEmpty()) {
-                    ResearchTaskStore.EnqueueResult enqueued = researchTasks.enqueue(queries, text.toString());
+                    ResearchTaskStore.EnqueueResult enqueued = researchTasks.enqueue(queries, text);
                     report.put("researchEnabled", aiConfig.researchEnabled());
                     report.put("researchQueued", enqueued.queued);
                     report.put("researchRunning", enqueued.researching);
@@ -149,8 +163,11 @@ public class ApiController {
 
             return ResponseEntity.ok(report);
         } catch (Exception e) {
+            // 堆栈只留在服务端日志里，别把内部异常信息（路径、类名、SQL）回给浏览器
+            System.err.println("[分析] 失败：" + e);
             e.printStackTrace();
-            return ResponseEntity.status(500).body(err("分析失败：" + e.getMessage()));
+            return ResponseEntity.status(500).body(err(
+                    "分析失败，请稍后重试。如果一直失败，请到「关于」页把这份成分表反馈给我们。"));
         }
     }
 
@@ -168,6 +185,11 @@ public class ApiController {
             String base64 = img.toString();
             int comma = base64.indexOf(',');
             if (base64.startsWith("data:") && comma > 0) base64 = base64.substring(comma + 1);
+            if (base64.length() > MAX_IMAGE_BASE64) {
+                return ResponseEntity.status(413).body(err(
+                        "图片太大了（约 " + Math.round(base64.length() / 1024.0 / 1024.0)
+                                + " MB，上限 6 MB）。请只裁剪到成分表区域再上传，或改用「粘贴成分表文本」。"));
+            }
             String mime = body.get("mime") == null ? "image/jpeg" : body.get("mime").toString();
 
             VisionService.Recognition recognized = visionService.recognize(base64, mime);
@@ -180,8 +202,11 @@ public class ApiController {
             // message 已经是给用户看的可行动提示，不要再套一层「识别失败」
             return ResponseEntity.status(502).body(err(e.getMessage()));
         } catch (Exception e) {
+            // 未预期的异常（网络、解析、上游协议）不回显内部细节，只留服务端日志
+            System.err.println("[视觉] 未预期失败：" + e);
             e.printStackTrace();
-            return ResponseEntity.status(502).body(err("识别失败：" + e.getMessage()));
+            return ResponseEntity.status(502).body(err(
+                    "识别服务暂时不可用，请改用「粘贴成分表文本」，或稍后重试。"));
         }
     }
 
