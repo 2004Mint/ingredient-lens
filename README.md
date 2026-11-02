@@ -66,7 +66,7 @@
 
 ## 管理控制台
 
-`http://localhost:5173/#/admin`，密码在 `server/data/admin-password.txt`（也可用 `ADMIN_PASSWORD` 指定）。
+`http://localhost:5173/#/admin`，密码在 `~/.cosme/data/admin-password.txt`（也可用 `ADMIN_PASSWORD` 指定）。
 
 - **布局**：顶栏 logo + 全局搜索 + 刷新 + 视觉状态 + 退出；左侧深色导航；右侧主区域。手机端侧栏变成抽屉。
 - **概览**：成分库 / 待研究 / 已确认 / 分享四个 KPI，最近分享、最新反馈、运行状态、检查清单。
@@ -78,13 +78,13 @@
   - 描述留空时前台卡片回退显示一句话「作用」。
   - 待研究与已确认参与报告匹配；已拒绝只保留审计，不参与匹配。
   - 原始 60 条成分进入「待研究」；AI 研究结果也先回「待研究」，参与匹配并在报告注明 AI 补全，人工确认后转为「已确认」。
-  - AI 结果会带置信度、研究模型与依据，方便复核；改动写 `server/data/ingredients.json`，立即重建索引。
-- **研究任务**：扫描到的未收录 token 会先进入 `data/research-tasks.json`，后台 worker 自动研究；失败任务带错误、尝试次数和重试时间，可单条或批量重试。研究 API 未配置时任务也会保留，不会无声消失。
+  - AI 结果会带置信度、研究模型与依据，方便复核；改动写 `~/.cosme/data/ingredients.json`，立即重建索引。
+- **研究任务**：扫描到的未收录 token 会先进入 `~/.cosme/data/research-tasks.json`，后台 worker 自动研究；失败任务带错误、尝试次数和重试时间，可单条或批量重试。研究 API 未配置时任务也会保留，不会无声消失。
   - 同一成分的括号变体会自动并入已有成分：例如 `(日用)香精` 研究出标准名 `香精` 时，不再因重名失败，而是把 `(日用)香精` 写成 `香精` 的别名，任务直接完成，报告重新分析即可匹配。
 - **扫描自动补全**：`/api/analyze` 先把未收录 token 入队，后台研究成功后写回待研究库；报告自动轮询并在完成后刷新。报告不出现未识别名单，只显示「待补全」占位、研究队列状态和「AI 已补全」提示。
 - **分享报告**：列表、打开、复制短链、删除；**用户反馈**：按时间倒序查看与搜索；**系统状态**：版本、运行时长、数据文件路径、公开接口与安全边界。
 - **搜索**：顶栏全局搜索成分 / 报告编号 / 产品名 / 反馈，点结果直接跳到对应模块，并自动切到该成分的审核状态页签。
-- **安全**：管理令牌只存在内存，12 小时有效；统计、分享、反馈、成分写、AI 配置接口全部要求 Bearer 令牌。数据都在本机 `server/data/`，不接第三方。
+- **安全**：管理令牌只存在内存，12 小时有效；统计、分享、反馈、成分写、AI 配置接口全部要求 Bearer 令牌。数据都落在本机数据目录（默认 `~/.cosme/data`），不接第三方。
 
 ![管理控制台 · 概览](docs/shot-admin.png)
 
@@ -231,11 +231,25 @@ npm run dev
 
 页面入口：`#/ingredients` 成分库、`#/method` 解读方法、`#/history` 历史报告、`#/about` 关于与隐私、`#/admin` 管理控制台。
 
-管理控制台：`http://localhost:5173/#/admin`。首次启动会自动生成管理密码到 `server/data/admin-password.txt`（也可以用 `ADMIN_PASSWORD` 环境变量指定）。
+管理控制台：`http://localhost:5173/#/admin`。首次启动会自动生成管理密码到 `~/.cosme/data/admin-password.txt`（也可以用 `ADMIN_PASSWORD` 环境变量指定）。
 
 ![输入页：粘贴成分表、实时切分与档案](docs/shot-home.png)
 
 ![成分库：60 条高频成分，可搜索与筛选](docs/shot-ingredients.png)
+
+### 数据存在哪
+
+后端所有落盘内容（管理密码、AI 配置、成分库覆盖、研究队列、分享报告、反馈）都在**同一个数据目录**，由 `DataPaths` 统一解析：
+
+| 优先级 | 方式 | 示例 |
+|---|---|---|
+| 1 | JVM 参数 | `java -Dcosme.data.dir=/srv/cosme -jar target/cosme-backend-1.0.0.jar` |
+| 2 | 环境变量 | `COSME_DATA_DIR=/srv/cosme`（Windows：`set COSME_DATA_DIR=D:\cosme`） |
+| 3 | 默认值 | Windows `C:\Users\<你>\.cosme\data`；macOS / Linux `~/.cosme/data` |
+
+解析结果会打印在启动第一屏：`[数据] 目录：…（来源：默认值）`。
+
+> 早期版本把数据放在 `server/data/` 或仓库根目录的 `data/`，会随启动目录变化——在根目录起 jar 和在 `server/` 下起，读写的是两套数据。现在两者都不再使用；从旧目录迁移只需把文件复制到上面的数据目录（同名文件以较新的为准）。
 
 ### 手机现场演示
 
@@ -245,17 +259,17 @@ Vite 已配置 `host: true`，同一 Wi-Fi 下手机访问 `http://<电脑局域
 
 **推荐：管理控制台 → API 与模型，保存即生效**
 
-1. 打开 `http://localhost:5173/#/admin` 并登录；密码在 `server/data/admin-password.txt`（首次启动自动生成，也可用 `ADMIN_PASSWORD` 指定）。
+1. 打开 `http://localhost:5173/#/admin` 并登录；密码在 `~/.cosme/data/admin-password.txt`（首次启动自动生成，也可用 `ADMIN_PASSWORD` 指定）。
 2. 先填「总 API」：Base URL、Key、默认模型。总 API 是所有功能的默认值。
 3. 需要拍照识别时，在「视觉 API」填一个支持看图的多模态模型（地址 / Key 可留空回退总 API）；点「测试视觉」。
 4. 需要成分 AI 研究时，在「研究 API」填一个能稳定输出 JSON 的文本模型；留空则直接用总 API。点「测试研究」用「烟酰胺」试一次。
 5. 点「保存全部配置」，立即生效，不用重启。研究请求读取超时为 **30 秒**（视觉为 60 秒）；超时、空内容或非 JSON 会记录到研究任务，便于重试。
 
-配置落在 `server/data/ai-settings.json`，已被 `.gitignore` 排除；页面只回显掩码 Key。旧版 `vision-settings.json` 会被兼容读取成视觉覆盖块。
+配置落在 `~/.cosme/data/ai-settings.json`，已被 `.gitignore` 排除；页面只回显掩码 Key。旧版 `vision-settings.json` 会被兼容读取成视觉覆盖块。
 
 同一个控制台还可以维护成分数据（待研究 / 已确认 / 已拒绝）、批量 AI 研究、查看分享报告、处理反馈、检查运行状态。
 
-改管理密码：编辑 `server/data/admin-password.txt` 后重启后端，或用 `ADMIN_PASSWORD` 环境变量覆盖（重启生效）。
+改管理密码：编辑 `~/.cosme/data/admin-password.txt` 后重启后端，或用 `ADMIN_PASSWORD` 环境变量覆盖（重启生效）。
 
 管理控制台和 API Key 只应在本机或可信局域网使用；如果要部署到公网，请加 HTTPS，并在反向代理层再做一层鉴权。
 
@@ -276,7 +290,7 @@ set RESEARCH_MODEL=your-text-model
 java -jar target\cosme-backend-1.0.0.jar
 ```
 
-视觉与研究可以是两个不同服务：分别填 `VISION_BASE_URL` / `VISION_API_KEY`、`RESEARCH_BASE_URL` / `RESEARCH_API_KEY` 即可；功能块内部再按「功能字段 → 总 API 字段」逐项回退。配置优先级：`server/data/ai-settings.json` > 环境变量；旧版只认 `VISION_*` / `OPENAI_*` 的部署仍然可用。
+视觉与研究可以是两个不同服务：分别填 `VISION_BASE_URL` / `VISION_API_KEY`、`RESEARCH_BASE_URL` / `RESEARCH_API_KEY` 即可；功能块内部再按「功能字段 → 总 API 字段」逐项回退。配置优先级：`~/.cosme/data/ai-settings.json` > 环境变量；旧版只认 `VISION_*` / `OPENAI_*` 的部署仍然可用。
 
 未配置可用的视觉模型时，首页不显示拍照按钮，副标题也会从「拍一下」换成「粘一下」；未配置研究 API 时，未收录 token 仍会进入研究队列，但不会自动处理，报告只显示「待补全」和研究队列状态，不会列错名。
 
@@ -339,11 +353,11 @@ curl -s -H "Authorization: Bearer $VISION_API_KEY" "$VISION_BASE_URL/v1/models"
 | `POST /api/reports` | 保存当前报告（产品名、成分表、档案、结果、编号），返回 10 位短 ID |
 | `GET /api/reports/{id}` | 按 ID 读取分享报告；不存在/已清理返回 404 |
 
-链接形如 `http://localhost:5173/#/s/<id>`；文件存在 `server/data/reports/`，30 天后自动清理。链接使用当前访问地址：同一台设备可直接打开；跨设备请先用局域网 IP 访问本应用再分享，公网分享需要先部署。链接包含档案信息，前端分享前会明确提示。
+链接形如 `http://localhost:5173/#/s/<id>`；文件存在 `~/.cosme/data/reports/`，30 天后自动清理。链接使用当前访问地址：同一台设备可直接打开；跨设备请先用局域网 IP 访问本应用再分享，公网分享需要先部署。链接包含档案信息，前端分享前会明确提示。
 
 ### `POST /api/feedback`
 
-`{ "message": "…", "contact": "…", "page": "about" }` → 保存到 `server/data/feedback.jsonl`，不经过第三方。
+`{ "message": "…", "contact": "…", "page": "about" }` → 保存到 `~/.cosme/data/feedback.jsonl`，不经过第三方。
 
 ### 管理控制台接口（需登录）
 
@@ -373,7 +387,7 @@ curl -s -H "Authorization: Bearer $VISION_API_KEY" "$VISION_BASE_URL/v1/models"
 | `POST /api/admin/ingredients/research` | 批量 AI 研究已有成分（单次最多 10 个），结果回待研究 |
 | `POST /api/admin/ingredients/reset` | 删除自定义覆盖，恢复内置 60 条 |
 
-除登录外都要带 `Authorization: Bearer <token>`。管理密码在 `server/data/admin-password.txt`，或用 `ADMIN_PASSWORD` 指定；总 API / 视觉 / 研究配置落盘在 `server/data/ai-settings.json`，自定成分落盘在 `server/data/ingredients.json`，研究任务落盘在 `server/data/research-tasks.json`，都已被 `.gitignore` 排除。
+除登录外都要带 `Authorization: Bearer <token>`。管理密码在 `~/.cosme/data/admin-password.txt`，或用 `ADMIN_PASSWORD` 指定；总 API / 视觉 / 研究配置落盘在 `~/.cosme/data/ai-settings.json`，自定成分落盘在 `~/.cosme/data/ingredients.json`，研究任务落盘在 `~/.cosme/data/research-tasks.json`；它们都在数据目录里（默认 `~/.cosme/data`），不在仓库中。
 
 ---
 
