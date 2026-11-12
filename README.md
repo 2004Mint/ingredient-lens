@@ -225,7 +225,7 @@ npm run dev
 
 浏览器打开 **http://localhost:5173**（`127.0.0.1:5173` 也可）。
 
-也可以直接双击根目录的 `start-server.bat` 和 `start-web.bat`。
+也可以直接双击根目录的 `start-server.bat` 和 `start-web.bat`；只想演示的话双击 `start-demo.bat`，它会一次开两个窗口并自动打开页面。
 
 **快速演示**：访问 `http://localhost:5173/?demo=1` 会自动跑通一条示例并直接展示报告；`?sample=2` / `?sample=3` 可直接打开另外两条示例。
 

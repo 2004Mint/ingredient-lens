@@ -1,18 +1,23 @@
 @echo off
-chcp 65001 >nul
+setlocal
 cd /d "%~dp0server"
 
-if not exist "target\cosme-backend-1.0.0.jar" (
-    echo [1/2] 首次运行，正在编译后端...
+set "JAR=target\cosme-backend-1.0.0.jar"
+
+if not exist "%JAR%" (
+    echo [1/2] Building backend, first run may take a minute...
     call mvn -B -q -DskipTests package
-    if not exist "target\cosme-backend-1.0.0.jar" (
-        echo 编译失败，请确认已安装 JDK 11+ 与 Maven。
-        pause
-        exit /b 1
-    )
 )
 
-echo [2/2] 启动后端  http://127.0.0.1:8082
-echo 关闭此窗口即可停止服务。
-java -jar target\cosme-backend-1.0.0.jar
+if not exist "%JAR%" (
+    echo [ERROR] Build failed.
+    echo         Check that JDK 11+ and Maven 3.6+ are on PATH.
+    pause
+    exit /b 1
+)
+
+echo [2/2] Backend: http://127.0.0.1:8082
+echo       Close this window or press Ctrl+C to stop.
+java -jar "%JAR%"
+
 pause

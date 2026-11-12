@@ -1,14 +1,22 @@
 @echo off
-chcp 65001 >nul
+setlocal
 cd /d "%~dp0web"
 
 if not exist "node_modules" (
-    echo 首次运行，正在安装前端依赖...
+    echo [1/2] Installing frontend dependencies...
     call npm install --no-fund --no-audit
 )
 
-echo 启动前端  http://localhost:5173
-echo 请先确保后端已在 8082 端口运行（双击 start-server.bat）。
+if not exist "node_modules" (
+    echo [ERROR] npm install failed.
+    echo         Check that Node 18+ is on PATH.
+    pause
+    exit /b 1
+)
+
+echo [2/2] Frontend: http://localhost:5173
+echo       Make sure the backend is already running on port 8082.
 start "" http://localhost:5173
-call npm run dev
+call npm run dev -- --strictPort
+
 pause
