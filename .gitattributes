@@ -1,0 +1,2 @@
+# 批处理脚本必须是 CRLF：cmd 解析裸 LF 的 .bat 会把相邻行粘在一起
+*.bat text eol=crlf
