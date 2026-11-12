@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import AnimatedNumber from './AnimatedNumber.vue'
 import IngredientDetail from './IngredientDetail.vue'
 import LadderChart from './LadderChart.vue'
+import StreamText from './StreamText.vue'
 import ProfileControls from './ProfileControls.vue'
 import { profileLabel } from '../lib/text.js'
 import { reportView } from '../lib/report.js'
@@ -26,6 +27,20 @@ const library = ref([])
 const detail = ref(null)
 
 const view = computed(() => reportView(props.data))
+
+/* 报告或档案一变，解释就该重写：换 key 让流式组件重新挂载 */
+const explainKey = computed(() =>
+  [
+    props.data.verdict && props.data.verdict.level ? props.data.verdict.level : '',
+    props.data.total || 0,
+    props.data.matched || 0,
+    props.data.unknownCount || 0,
+    Number(props.data.researchDone || 0),
+    props.profile.skin || '',
+    props.profile.sensitive ? 1 : 0,
+    props.profile.pregnant ? 1 : 0
+  ].join('|')
+)
 
 const flags = computed(() => props.data.flags || [])
 const highFlags = computed(() => flags.value.filter((f) => f.level === 'high'))
@@ -78,7 +93,7 @@ const stats = computed(() => [
   {
     label: '疑似概念添加',
     value: conceptCount.value,
-    tip: '排在第 11 位之后的功效成分，含量通常已很低',
+    tip: '排在第 11 位之后的功效成分，通常不是主要功效来源',
     tone: conceptCount.value > 0 ? 'hot' : ''
   },
   {
@@ -231,7 +246,15 @@ onMounted(async () => {
           <span class="vmeta">{{ profileText }}<i>·</i>{{ totalText }}</span>
         </div>
         <h1 class="vhead serif">{{ view.headline }}</h1>
-        <p class="vsum">{{ view.summary }}</p>
+        <StreamText
+          v-if="!unrecognized && view.level !== 'insufficient'"
+          :key="explainKey"
+          class="vsum"
+          url="/api/explain/stream"
+          :payload="{ report: data, profile: profile }"
+          :fallback="view.summary"
+        />
+        <p v-else class="vsum">{{ view.summary }}</p>
 
         <p v-if="view.lowCoverage && view.level !== 'insufficient'" class="vnote">
           共 {{ view.total }} 个成分，只认出 {{ view.matched }} 个，结论可能不完整。
@@ -393,7 +416,7 @@ onMounted(async () => {
           </div>
           <span class="sec-meta">{{ actives.length }} 个</span>
         </div>
-        <p class="hint">位置越靠前，含量越高。排在第 11 位之后的功效成分，多数是概念添加。</p>
+        <p class="hint">位置越靠前，相对含量越高——这是顺序信息，不是具体数值。排在第 11 位之后的功效成分，通常不是主要功效来源。</p>
 
         <ul class="actives">
           <li
@@ -456,7 +479,7 @@ onMounted(async () => {
       </div>
     </div>
 
-    <IngredientDetail v-if="detail" :detail="detail" @close="detail = null" />
+    <IngredientDetail v-if="detail" :detail="detail" :profile="profile" @close="detail = null" />
   </article>
 </template>
 

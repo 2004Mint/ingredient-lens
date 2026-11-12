@@ -1,8 +1,10 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import StreamText from './StreamText.vue'
 
 const props = defineProps({
-  detail: { type: Object, required: true }
+  detail: { type: Object, required: true },
+  profile: { type: Object, default: null }
 })
 const emit = defineEmits(['close'])
 
@@ -28,7 +30,7 @@ const oneLine = computed(() => {
 const tierLabel = computed(() => {
   if (context.value.tier === 'core') return '前 5 位，含量较高'
   if (context.value.tier === 'middle') return '第 6–10 位，含量中等'
-  if (context.value.tier === 'tail') return '第 11 位之后，含量通常已很低'
+  if (context.value.tier === 'tail') return '第 11 位之后，属配方后段'
   return ''
 })
 
@@ -60,6 +62,29 @@ const riskTags = computed(() => {
 })
 
 const comment = computed(() => String(context.value.comment || context.value.fn || '').trim())
+
+/* 点开详情才请求解释：事实全部来自成分库与本次报告，模型只负责组织语言 */
+const streamPayload = computed(() => ({
+  name: item.value.name || context.value.name || '',
+  role: item.value.role || context.value.role || '',
+  cat: item.value.cat || context.value.cat || '',
+  index: context.value.index,
+  tier: context.value.tier,
+  comedo: item.value.comedo,
+  irrit: item.value.irrit,
+  preg: item.value.preg,
+  sensitive: item.value.sensitive,
+  limit: item.value.limit || '',
+  note: item.value.note || '',
+  function: item.value.function || '',
+  comment: context.value.comment || '',
+  profile: props.profile || {}
+}))
+
+const streamKey = computed(() => {
+  const p = props.profile || {}
+  return [streamPayload.value.name, p.skin || '', p.sensitive ? 1 : 0, p.pregnant ? 1 : 0].join('|')
+})
 
 function close() {
   emit('close')
@@ -112,7 +137,15 @@ onBeforeUnmount(() => {
           </div>
         </header>
 
-        <p class="id-desc">{{ description }}</p>
+        <StreamText
+          v-if="!researched && streamPayload.name"
+          :key="streamKey"
+          class="id-desc"
+          url="/api/explain/ingredient/stream"
+          :payload="streamPayload"
+          :fallback="description"
+        />
+        <p v-else class="id-desc">{{ description }}</p>
         <p v-if="oneLine" class="id-oneline">一句话：{{ oneLine }}</p>
 
         <section v-if="riskTags.length" class="id-section">
@@ -143,7 +176,7 @@ onBeforeUnmount(() => {
         <p v-if="item.note" class="id-note">{{ item.note }}</p>
 
         <footer class="id-foot">
-          <p>只读标签与成分库信息，不评价商品优劣，也不构成医疗或用药建议。{{ researched ? 'AI 生成的描述仍需人工复核。' : '' }}</p>
+          <p>只读标签与成分库信息，不评价商品优劣，也不构成医疗或用药建议。{{ researched ? 'AI 生成的描述仍需人工复核。' : 'AI 解释仅作辅助，事实以规则与成分库为准。' }}</p>
           <button type="button" class="id-done" @click="close">知道了</button>
         </footer>
       </article>
