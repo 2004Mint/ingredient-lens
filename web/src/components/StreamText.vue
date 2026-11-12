@@ -64,13 +64,24 @@ function handle(evt) {
   if (evt.type === 'replace') {
     hasDelta = true
     text.value = evt.text || props.fallback || ''
-    notice.value = evt.reason ? `已回退本地解释：${evt.reason}` : '已回退本地解释'
+    if (evt.source) source.value = evt.source
+    if (evt.source === 'llm') {
+      notice.value = evt.reason || '已重新生成完整解释'
+    } else {
+      notice.value = evt.reason ? `本地解释：${evt.reason}` : '本地解释'
+    }
     return
   }
   if (evt.type === 'done') {
     source.value = evt.source || ''
-    if (evt.reason && !notice.value) notice.value = evt.reason
     streaming.value = false
+    if (!notice.value) {
+      if (evt.source === 'template') {
+        notice.value = evt.reason ? `本地解释：${evt.reason}` : '本地解释'
+      } else if (evt.reason) {
+        notice.value = evt.reason
+      }
+    }
   }
 }
 
@@ -101,12 +112,7 @@ onBeforeUnmount(stop)
       {{ text }}<span v-if="streaming" class="explain-caret" aria-hidden="true"></span>
     </p>
 
-    <p v-if="notice || source === 'template'" class="explain-foot">
-      <span v-if="source === 'template'">本地解释</span>
-      <span v-else-if="notice">解释未完成</span>
-      <span v-if="notice && source === 'template'"> · </span>
-      <span v-if="notice">{{ notice }}</span>
-    </p>
+    <p v-if="notice" class="explain-foot">{{ notice }}</p>
   </div>
 </template>
 

@@ -139,8 +139,9 @@ public class ExplainService {
                         + "\n请按要求输出解释。";
 
                 String upstreamError = null;
+                StreamResult streamResult = null;
                 try {
-                    streamChat(cfg, system, userPrompt, delta -> {
+                    streamResult = streamChat(cfg, system, userPrompt, delta -> {
                         got.append(delta);
                         send(emitter, closed, deltaEvent(delta));
                     });
@@ -149,23 +150,43 @@ public class ExplainService {
                 }
 
                 String text = got.toString().trim();
-                String violation = guard(text);
+                // 上游可能中途断流：既没有 [DONE]，也没有 finish_reason；或者「正常」结束
+                // 但最后一句没写完。这两种都不能当成成功——否则用户看到半句话却没有任何提示。
+                boolean incomplete = streamResult == null
+                        || !streamResult.hasFinishSignal()
+                        || !endsWithTerminal(text);
 
-                if (text.isEmpty()) {
-                    send(emitter, closed, step("guard", "模型没有返回内容，回退模板", "done"));
-                    streamFallback(emitter, closed, fallback, "template",
-                            upstreamError == null ? "模型未返回内容" : shorten(upstreamError));
+                if (incomplete && upstreamError == null) {
+                    send(emitter, closed, step("retry", "上游提前结束，重新生成完整解释", "running"));
+                    String full = null;
+                    try {
+                        full = completeChat(cfg, system, userPrompt);
+                    } catch (Exception e) {
+                        upstreamError = e.getMessage();
+                    }
+                    String retried = full == null ? "" : full.trim();
+                    if (!retried.isEmpty() && endsWithTerminal(retried) && guard(retried) == null) {
+                        send(emitter, closed, step("retry", "已重新生成完整解释", "done"));
+                        sendReplace(emitter, closed, retried, "llm", "上游断流后重试成功");
+                        done(emitter, closed, "llm", "上游断流后重试成功");
+                        return;
+                    }
+                    incomplete = true;
+                }
+
+                if (text.isEmpty() || incomplete) {
+                    String reason = upstreamError == null ? "上游输出不完整" : shorten(upstreamError);
+                    send(emitter, closed, step("guard", "已回退本地解释", "done"));
+                    sendReplace(emitter, closed, fallback, "template", reason);
+                    done(emitter, closed, "template", reason);
                     return;
                 }
 
+                String violation = guard(text);
                 if (violation != null) {
                     // 已经把不合规的文字推给前端了，所以整段替换，而不是假装没发生
                     send(emitter, closed, step("guard", "输出闸门拦截：" + violation, "done"));
-                    Map<String, Object> replace = new LinkedHashMap<>();
-                    replace.put("type", "replace");
-                    replace.put("text", fallback);
-                    replace.put("reason", violation);
-                    send(emitter, closed, replace);
+                    sendReplace(emitter, closed, fallback, "template", violation);
                     done(emitter, closed, "template", violation);
                     return;
                 }
@@ -207,12 +228,12 @@ public class ExplainService {
 
     // ---------------------------------------------------------------- 上游流式调用
 
-    private void streamChat(VisionSettings cfg, String system, String user,
-                            java.util.function.Consumer<String> onDelta) throws Exception {
+    private StreamResult streamChat(VisionSettings cfg, String system, String user,
+                                    java.util.function.Consumer<String> onDelta) throws Exception {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("model", cfg.model);
         payload.put("temperature", 0.4);
-        payload.put("max_tokens", 420);
+        payload.put("max_tokens", 600);
         payload.put("stream", true);
         List<Map<String, String>> messages = new ArrayList<>();
         messages.add(msg("system", system));
@@ -220,6 +241,7 @@ public class ExplainService {
         payload.put("messages", messages);
         byte[] body = om.writeValueAsBytes(payload);
 
+        StreamResult result = new StreamResult();
         Exception last = null;
         for (String url : candidateUrls(cfg.baseUrl)) {
             HttpURLConnection conn = null;
@@ -253,17 +275,23 @@ public class ExplainService {
                         if (!line.startsWith("data:")) continue;
                         String chunk = line.substring(5).trim();
                         if (chunk.isEmpty()) continue;
-                        if ("[DONE]".equals(chunk)) break;
+                        if ("[DONE]".equals(chunk)) {
+                            result.sawDone = true;
+                            break;
+                        }
                         JsonNode node = om.readTree(chunk);
-                        String delta = node.path("choices").path(0).path("delta").path("content").asText("");
+                        JsonNode choice = node.path("choices").path(0);
+                        String delta = choice.path("delta").path("content").asText("");
                         if (delta.isEmpty()) {
                             // 有些兼容实现只在 message.content 里给整段
-                            delta = node.path("choices").path(0).path("message").path("content").asText("");
+                            delta = choice.path("message").path("content").asText("");
                         }
                         if (!delta.isEmpty()) onDelta.accept(delta);
+                        String finish = choice.path("finish_reason").asText("");
+                        if (!finish.isEmpty()) result.finishReason = finish;
                     }
                 }
-                return;
+                return result;
             } catch (Exception e) {
                 last = e;
             } finally {
@@ -271,6 +299,67 @@ public class ExplainService {
             }
         }
         throw last == null ? new IllegalStateException("没有可用的对话接口") : last;
+    }
+
+    /** 非流式补全，用于「上游断流」时拿一份完整答案。 */
+    private String completeChat(VisionSettings cfg, String system, String user) throws Exception {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("model", cfg.model);
+        payload.put("temperature", 0.4);
+        payload.put("max_tokens", 600);
+        payload.put("stream", false);
+        List<Map<String, String>> messages = new ArrayList<>();
+        messages.add(msg("system", system));
+        messages.add(msg("user", user));
+        payload.put("messages", messages);
+        byte[] body = om.writeValueAsBytes(payload);
+
+        Exception last = null;
+        for (String url : candidateUrls(cfg.baseUrl)) {
+            HttpURLConnection conn = null;
+            try {
+                conn = (HttpURLConnection) new URL(url).openConnection();
+                conn.setRequestMethod("POST");
+                conn.setConnectTimeout(8_000);
+                conn.setReadTimeout(60_000);
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+                conn.setRequestProperty("Authorization", "Bearer " + cfg.apiKey);
+
+                try (OutputStream out = conn.getOutputStream()) {
+                    out.write(body);
+                }
+
+                int status = conn.getResponseCode();
+                if (status == 404) {
+                    last = new IllegalStateException("404 " + url);
+                    continue;
+                }
+                if (status >= 400) {
+                    throw new IllegalStateException("上游返回 " + status + "：" + readSnippet(conn.getErrorStream()));
+                }
+
+                try (InputStream in = conn.getInputStream()) {
+                    JsonNode root = om.readTree(in);
+                    return root.path("choices").path(0).path("message").path("content").asText("");
+                }
+            } catch (Exception e) {
+                last = e;
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        }
+        throw last == null ? new IllegalStateException("没有可用的对话接口") : last;
+    }
+
+    /** 一次流式调用的结果：是否收到明确的结束信号。 */
+    private static class StreamResult {
+        boolean sawDone;
+        String finishReason;
+
+        boolean hasFinishSignal() {
+            return sawDone || (finishReason != null && !finishReason.isEmpty());
+        }
     }
 
     private List<String> candidateUrls(String baseUrl) {
@@ -404,6 +493,25 @@ public class ExplainService {
         m.put("type", "delta");
         m.put("text", text);
         return m;
+    }
+
+    /** 用一段完整文本替换已经流出去的内容（重试成功 / 回退模板 / 闸门拦截）。 */
+    private void sendReplace(SseEmitter emitter, AtomicBoolean closed, String text,
+                             String source, String reason) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("type", "replace");
+        m.put("text", text == null ? "" : text);
+        m.put("source", source);
+        if (reason != null) m.put("reason", reason);
+        send(emitter, closed, m);
+    }
+
+    /** 句子有没有写完：上游断流最常见的表现就是停在一句话中间。 */
+    private boolean endsWithTerminal(String text) {
+        if (text == null || text.isEmpty()) return false;
+        char c = text.charAt(text.length() - 1);
+        return c == '。' || c == '！' || c == '？' || c == '…'
+                || c == '」' || c == '”' || c == '"' || c == ')';
     }
 
     private void done(SseEmitter emitter, AtomicBoolean closed, String source, String reason) {
