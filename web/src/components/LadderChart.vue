@@ -22,7 +22,7 @@ const bands = computed(() => {
   return [
     { key: 'core', label: '前 5 位', note: '含量较高，是配方的主体', items: core },
     { key: 'middle', label: '第 6–10 位', note: '含量中等', items: middle },
-    { key: 'tail', label: '第 11 位之后', note: '含量通常已很低，功效成分排在这里多为概念添加', items: tail }
+    { key: 'tail', label: '第 11 位之后', note: '属配方后段，功效成分排在这里通常不是主要功效来源', items: tail }
   ].filter((band) => band.items.length)
 })
 
@@ -54,7 +54,7 @@ function tip(row) {
   const pos = `第 ${(Number(row.index) || 0) + 1} 位`
   if (row.known === false) return `${pos} · 待补全，补全后会参与结论`
   const base = isConcept(row)
-    ? `${row.name} · ${pos} · 功效成分排在此处，含量通常已很低`
+    ? `${row.name} · ${pos} · 功效成分排在此处，属配方后段`
     : `${row.name} · ${pos}${row.cat ? ' · ' + row.cat : ''}`
   return `${base} · 点击查看成分详情`
 }
