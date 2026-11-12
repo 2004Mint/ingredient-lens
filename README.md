@@ -212,16 +212,25 @@ AIWEB/
 **环境要求**：JDK 11+、Maven 3.6+、Node 18+
 
 ```bash
-# 终端 1：后端
+# 终端 1：后端（直接跑源码，不需要先打包）
 cd server
-mvn -DskipTests package
-java -jar target/cosme-backend-1.0.0.jar
+mvn spring-boot:run
 
 # 终端 2：前端
 cd web
 npm install
 npm run dev
 ```
+
+需要可分发 jar（部署、或交付前验证能打包）时：
+
+```bash
+cd server
+mvn -DskipTests package
+java -jar target/cosme-backend-1.0.0.jar
+```
+
+> 打包失败并报 `Unable to rename ... .jar` 时，通常是**后端还在运行**、jar 被占用：先停掉服务再打包。
 
 浏览器打开 **http://localhost:5173**（`127.0.0.1:5173` 也可）。
 
