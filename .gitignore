@@ -7,6 +7,8 @@ dist/
 # 运行时日志
 server/run*.log
 server/run*.err
+web/*.log
+web/*.err
 
 # 本地数据目录（含视觉 Key、管理密码、分享报告）
 # 统一由 DataPaths 解析到 ~/.cosme/data；仓库内这两个路径是历史遗留，仍然禁止提交
