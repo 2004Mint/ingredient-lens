@@ -251,6 +251,15 @@ function stopTimers() {
   stepTimer = 0
 }
 
+/** 录制/评测时可以带 ?research=0 关掉自动研究，避免示例触发真实模型调用 */
+function researchAllowed() {
+  try {
+    return new URLSearchParams(window.location.search).get('research') !== '0'
+  } catch {
+    return true
+  }
+}
+
 async function analyze({ silent = false } = {}) {
   const content = text.value.trim()
   if (!content) {
@@ -283,7 +292,7 @@ async function analyze({ silent = false } = {}) {
   }
 
   try {
-    const json = await postJSON('/api/analyze', { text: content, profile: profile.value }, 20000)
+    const json = await postJSON('/api/analyze', { text: content, profile: profile.value, research: researchAllowed() }, 20000)
     if (seq !== reqSeq) return
 
     if (!silent) {
