@@ -48,6 +48,8 @@ public class AnalyzeService {
         for (String token : tokens) {
             String t = cleanToken(token);
             if (t.isEmpty()) continue;
+            // 「1、2、3」这类编号不是成分：跳过，也别让它占掉一个成分位
+            if (isNoise(t)) continue;
             if (pos >= MAX_TOKENS) {
                 truncated = true;
                 break;
@@ -158,10 +160,10 @@ public class AnalyzeService {
 
         List<Map<String, Object>> flags = groupFlags(raw);
 
-        long high = flags.stream().filter(f -> "high".equals(f.get("level")))
-                .mapToLong(f -> ((List<?>) f.get("ingredients")).size()).sum();
-        long medium = flags.stream().filter(f -> "medium".equals(f.get("level")))
-                .mapToLong(f -> ((List<?>) f.get("ingredients")).size()).sum();
+        // 计数必须按成分去重：同一个成分可能同时命中孕期与敏感肌两条提示
+        // （例如氢醌），按提示条数累加会把一个成分说成两个。
+        long high = distinctIngredientCount(flags, "high");
+        long medium = distinctIngredientCount(flags, "medium");
 
         String level = high > 0 ? "avoid" : medium > 0 ? "caution" : "good";
         String headline = high > 0
@@ -278,6 +280,25 @@ public class AnalyzeService {
         return 2;
     }
 
+    /**
+     * 某一等级下去重后的成分数。
+     *
+     * 同一成分常常同时触发多条提示（孕期 + 敏感肌、致痘 + 刺激性），
+     * 用户看到的是「几个成分」，不是「几条规则」，所以标题只能按成分数说话。
+     */
+    long distinctIngredientCount(List<Map<String, Object>> flags, String level) {
+        java.util.Set<String> names = new java.util.LinkedHashSet<>();
+        for (Map<String, Object> f : flags) {
+            if (!level.equals(str(f.get("level"), ""))) continue;
+            Object value = f.get("ingredients");
+            if (!(value instanceof List)) continue;
+            for (Object name : (List<?>) value) {
+                if (name != null && !name.toString().trim().isEmpty()) names.add(name.toString().trim());
+            }
+        }
+        return names.size();
+    }
+
     private String typeMessage(String type, String level) {
         switch (type) {
             case "孕期":
@@ -367,6 +388,11 @@ public class AnalyzeService {
             if (!t.isEmpty()) out.add(t);
         }
         return out;
+    }
+
+    /** 不含任何汉字或拉丁字母的片段（纯编号、纯符号）不是成分名 */
+    private boolean isNoise(String t) {
+        return !t.matches(".*[\\p{IsHan}A-Za-z].*");
     }
 
     private String cleanToken(String t) {

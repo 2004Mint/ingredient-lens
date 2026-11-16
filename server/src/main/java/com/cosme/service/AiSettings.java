@@ -25,9 +25,14 @@ public class AiSettings {
     public static VisionSettings merge(VisionSettings own, VisionSettings fallback) {
         VisionSettings a = own == null ? new VisionSettings() : own;
         VisionSettings b = fallback == null ? new VisionSettings() : fallback;
+        String aBase = clean(a.baseUrl);
+        String bBase = clean(b.baseUrl);
+        // 地址与 Key 必须成对回退：自己填了一个新地址却没填 Key 时，
+        // 绝不能拿总 API 的 Key 去请求这个地址——那等于把 Key 发给第三方。
+        boolean sameEndpoint = aBase.isEmpty() || aBase.equals(bBase);
         return new VisionSettings(
                 first(a.baseUrl, b.baseUrl),
-                first(a.apiKey, b.apiKey),
+                first(a.apiKey, sameEndpoint ? b.apiKey : ""),
                 first(a.model, b.model));
     }
 

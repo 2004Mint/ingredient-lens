@@ -93,6 +93,30 @@ class AnalyzeServiceTest {
         assertTrue(on > off, "敏感肌开关应该改变风险数量");
     }
 
+    /**
+     * 同一个成分同时命中两条规则时（氢醌：孕期 + 敏感肌），
+     * 标题必须说「一个成分」，不能把两条提示说成两个成分。
+     */
+    @Test
+    void countsDistinctIngredientsNotFlags() {
+        Map<String, Object> pregnant = flag("high", "孕期", "氢醌");
+        Map<String, Object> sensitive = flag("high", "敏感肌", "氢醌");
+        Map<String, Object> medium = flag("medium", "敏感肌", "烟酰胺");
+
+        assertEquals(1, service.distinctIngredientCount(List.of(pregnant, sensitive), "high"));
+        assertEquals(1, service.distinctIngredientCount(List.of(pregnant, sensitive, medium), "medium"));
+        assertEquals(0, service.distinctIngredientCount(List.of(pregnant), "medium"));
+    }
+
+    @Test
+    void headlineUsesDistinctCount() {
+        Map<String, Object> report = service.analyze("水、甘油、视黄醇", profile("normal", true, true));
+        Map<String, Object> verdict = map(report.get("verdict"));
+
+        assertEquals("有 1 个成分建议你避开", verdict.get("headline"));
+        assertTrue(String.valueOf(verdict.get("summary")).contains("有 1 个成分建议避开"));
+    }
+
     @Test
     void stripsPackageLabelAndKeepsDigitComma() {
         Map<String, Object> report = service.analyze(
@@ -146,6 +170,14 @@ class AnalyzeServiceTest {
     @SuppressWarnings("unchecked")
     private static Map<String, Object> map(Object value) {
         return (Map<String, Object>) value;
+    }
+
+    private static Map<String, Object> flag(String level, String type, String ingredient) {
+        Map<String, Object> f = new HashMap<>();
+        f.put("level", level);
+        f.put("type", type);
+        f.put("ingredients", List.of(ingredient));
+        return f;
     }
 
     private static long nonInfoIngredientCount(Map<String, Object> report) {

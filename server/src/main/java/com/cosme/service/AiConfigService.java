@@ -152,7 +152,10 @@ public class AiConfigService {
         }
         String key = clean(keyInput);
         if (key.isEmpty()) {
-            if (!base.isEmpty() && !base.equals(n(cur.baseUrl)) && !n(cur.apiKey).isEmpty()) {
+            // 与「生效配置」比较，而不是与自己的覆盖块比较：覆盖块为空时，
+            // 旧写法会以为「地址没变」，把总 API 的 Key 配给一个全新的地址。
+            VisionSettings effective = AiSettings.merge(cur, current.defaultApi);
+            if (!base.isEmpty() && !base.equals(n(effective.baseUrl))) {
                 throw new IllegalArgumentException("更换服务地址时必须同时填写该地址的 API Key");
             }
             key = n(cur.apiKey);
@@ -197,7 +200,8 @@ public class AiConfigService {
         String model = clean(str(map.get("model")));
 
         if (key.isEmpty()) {
-            if (!base.isEmpty() && !base.equals(n(cur.baseUrl)) && !n(cur.apiKey).isEmpty()) {
+            VisionSettings effective = AiSettings.merge(cur, current.defaultApi);
+            if (!base.isEmpty() && !base.equals(n(effective.baseUrl))) {
                 throw new IllegalArgumentException(label + " 更换服务地址时必须填写该地址的 API Key");
             }
             key = n(cur.apiKey);
