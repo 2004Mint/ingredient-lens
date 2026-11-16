@@ -15,27 +15,27 @@ items:
       kicker: "全国高校 AI Web 开发挑战赛 · 本科 B 组"
       title: "成分镜"
       subtitle: "拍一下，看懂这瓶适不适合你"
-      duration: 14.966666666666667
+      duration: 13.566666666666666
   - clip: out/s1/s1.mp4
-    trim: [0, 48.5]
+    trim: [0, 43.86666666666667]
   - clip: out/s2/s2.mp4
-    trim: [0, 28.8]
+    trim: [0, 29.233333333333334]
   - clip: out/s3/s3.mp4
-    trim: [0, 38.93333333333333]
+    trim: [0, 46.3]
   - clip: out/s4/s4.mp4
-    trim: [0, 24.5]
+    trim: [0, 18.533333333333335]
   - clip: out/s5/s5.mp4
     trim: [0, 14.533333333333333]
   - clip: out/s6/s6.mp4
     trim: [0, 20.133333333333333]
   - clip: out/s7/s7.mp4
-    trim: [0, 39.53333333333333]
+    trim: [0, 40.96666666666667]
   - clip: out/s8/s8.mp4
-    trim: [0, 42.733333333333334]
+    trim: [0, 38.7]
   - clip: out/s9/s9.mp4
     trim: [0, 28.6]
   - clip: out/s10/s10.mp4
-    trim: [0, 18.533333333333335]
+    trim: [0, 28.2]
   - clip: out/s11/s11.mp4
     trim: [0, 15.433333333333334]
   - end:

@@ -13,8 +13,9 @@ $env:CD_NO_SANDBOX = '1'
 Set-Location $root
 
 # 管理令牌（录后台镜头用）
-$pw = (Get-Content 'E:\AIWEB\server\data\admin-password.txt' -Raw).Trim()
-$login = Invoke-RestMethod -Uri 'http://127.0.0.1:8082/api/admin/login' -Method Post `
+$pwPath = Join-Path $env:USERPROFILE '.cosme\data\admin-password.txt'
+$pw = (Get-Content $pwPath -Raw).Trim()
+$login = Invoke-RestMethod -Uri 'http://127.0.0.1:8083/api/admin/login' -Method Post `
   -ContentType 'application/json' -Body ([Text.Encoding]::UTF8.GetBytes((@{ password = $pw } | ConvertTo-Json -Compress))) -TimeoutSec 15
 $env:ADMIN_TOKEN = $login.token
 Write-Output "admin token ok ($($login.token.Length) chars)"
@@ -65,6 +66,6 @@ $filter = (Get-Content 'sub\filter.txt' -Raw -Encoding UTF8).Trim()
 & $ff -hide_banner -loglevel error -y -i 'shots\out\full-silent.mp4' -i 'audio\full-narration.wav' `
   -filter_complex $filter -map "[v]" -map 1:a:0 -t $vdur `
   -c:v libx264 -crf 18 -preset veryfast -pix_fmt yuv420p -c:a aac -b:a 192k -ar 44100 `
-  -movflags +faststart 'out\full-小鲸鱼.mp4'
-& $ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_type,codec_name,width,height,sample_rate -of default=noprint_wrappers=1 'out\full-小鲸鱼.mp4'
+  -movflags +faststart 'out\full-xiaojingyu.mp4'
+& $ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_type,codec_name,width,height,sample_rate -of default=noprint_wrappers=1 'out\full-xiaojingyu.mp4'
 Write-Output 'DONE'

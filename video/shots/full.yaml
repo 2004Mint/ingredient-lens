@@ -17,7 +17,7 @@ shots:
       - scroll: { by: 300, duration: 1600 }
       - wait: 1000
       - scroll: { by: -260, duration: 1400 }
-      - wait: 50500
+      - wait: 45867
   - id: s2
     url: http://127.0.0.1:5173/
     setup:
@@ -35,7 +35,7 @@ shots:
       - click: '.preset:has-text("孕期")'
         zoom: 1.18
         hold: 1500
-      - wait: 30800
+      - wait: 31233
   - id: s3
     url: http://127.0.0.1:5173/?demo=1
     setup:
@@ -44,16 +44,20 @@ shots:
     actions:
       - wait: 600
       - scroll: { to: '#ladder', block: 'start', duration: 1400 }
+      - wait: 9000
+      - click: 'button[role="tab"]:has-text("梯队")'
+        zoom: 1.1
+        hold: 900
       - wait: 800
       - camera: '.pill:has-text("烟酰胺")'
         zoom: 1.25
         duration: 1200
         hold: 2600
-      - wait: 15000
+      - wait: 16000
       - click: '.pill:has-text("烟酰胺")'
         zoom: 1.28
         hold: 900
-      - wait: 40933
+      - wait: 48300
   - id: s4
     url: http://127.0.0.1:5173/?demo=1
     setup:
@@ -68,10 +72,11 @@ shots:
       - click: '.switch-row:has-text("敏感肌")'
         zoom: 1.2
         hold: 2400
+      - wait: 9000
       - click: '.switch-row:has-text("敏感肌")'
         zoom: 1.2
         hold: 1200
-      - wait: 26500
+      - wait: 20533
   - id: s5
     url: http://127.0.0.1:5173/?demo=1
     setup:
@@ -96,32 +101,34 @@ shots:
         hold: 2600
       - wait: 22133
   - id: s7
-    url: http://127.0.0.1:5173/
+    url: http://127.0.0.1:5173/?research=0
     actions:
       - wait: 600
       - type: { target: '.ta', text: '甲乙丙、丁戊己、庚辛壬' }
       - wait: 500
+      - scroll: { to: '.cta', block: 'center', duration: 600 }
+      - wait: 300
       - click: '.cta'
         zoom: 1.12
         hold: 1200
       - wait: 3500
-      - wait: 41533
+      - wait: 42967
   - id: s8
     url: http://127.0.0.1:5173/#/admin
     setup:
-      - eval: 'sessionStorage.setItem(''cosme:admin-token'',''026a9ea2278948d0b28aa7f7e59ae51a'');location.reload()'
+      - eval: 'sessionStorage.setItem(''cosme:admin-token'',''697d5cc9cf2a428ca922f9c80719fa68'');location.reload()'
       - wait: 1200
       - waitFor: 'text=研究任务'
     actions:
-      - wait: 900
+      - wait: 800
       - click: 'text=研究任务'
         zoom: 1.12
-        hold: 2600
-      - wait: 800
+        hold: 1200
+      - wait: 16000
       - click: 'text=成分数据'
         zoom: 1.12
-        hold: 2600
-      - wait: 44733
+        hold: 1200
+      - wait: 40700
   - id: s9
     url: http://127.0.0.1:8098/vec.html
     cursor: false
@@ -137,7 +144,7 @@ shots:
       - wait: 900
       - wait: 6000
       - wait: 1600
-      - wait: 20533
+      - wait: 30200
   - id: s11
     url: http://127.0.0.1:5173/?demo=1
     setup:
