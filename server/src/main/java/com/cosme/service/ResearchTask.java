@@ -10,6 +10,8 @@ public class ResearchTask {
 
     public static final String QUEUED = "queued";
     public static final String RESEARCHING = "researching";
+    /** 研究完成但需要人工确认：草稿已生成，尚未写入成分库 */
+    public static final String REVIEW = "review";
     public static final String DONE = "done";
     public static final String FAILED = "failed";
 
@@ -27,6 +29,15 @@ public class ResearchTask {
     public Double confidence;
     public String model;
     public String evidence;
+
+    /** Agent 的执行计划与每一步的工具调用轨迹（管理台可展开） */
+    public java.util.List<String> plan;
+    public java.util.List<ResearchAgent.Step> trace;
+
+    /** 待复核的草稿；approve 时写库，reject 时丢弃 */
+    public IngredientAdminService.Draft draft;
+    /** 为什么进人工：字段不合法 / 置信度不足 */
+    public String reason;
 
     public String createdAt;
     public String updatedAt;

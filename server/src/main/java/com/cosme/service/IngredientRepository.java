@@ -232,6 +232,20 @@ public class IngredientRepository {
         return null;
     }
 
+    /**
+     * 只做精确匹配（含别名），不做包含匹配、不做编辑距离。
+     *
+     * 用于「这条草稿的成分是不是已经在库里」这种写数据库之前的判断：
+     * match() 的模糊匹配适合解析用户输入，但用它来决定「要不要新建成分」
+     * 会把「测试烟酰胺衍生物」这种新成分并成「烟酰胺」的别名。
+     */
+    public JsonNode exact(String token) {
+        if (token == null) return null;
+        String raw = token.trim();
+        if (raw.isEmpty()) return null;
+        return state.index.get(norm(raw));
+    }
+
     private boolean isLatin(String s) {
         if (s.isEmpty()) return false;
         boolean hasLetter = false;

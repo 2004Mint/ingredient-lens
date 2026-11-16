@@ -89,6 +89,16 @@ public class ResearchTaskStore {
                 tasks.add(task);
                 result.created++;
                 changed = true;
+                continue;
+            }
+            // 之前失败过、但还没到重试上限：再分析一次时自动放回队列，不必去管理台点重试
+            if (ResearchTask.FAILED.equals(existing.status)
+                    && existing.attempts < 3
+                    && existing.nextAttemptAt <= System.currentTimeMillis()) {
+                existing.status = ResearchTask.QUEUED;
+                existing.nextAttemptAt = 0;
+                existing.updatedAt = Instant.now().toString();
+                changed = true;
             }
         }
         if (changed) saveLocked();
@@ -123,29 +133,36 @@ public class ResearchTaskStore {
     }
 
     public synchronized Map<String, Integer> counts() {
-        int queued = 0, researching = 0, failed = 0, done = 0;
+        int queued = 0, researching = 0, failed = 0, done = 0, review = 0;
         for (ResearchTask task : tasks) {
             if (ResearchTask.QUEUED.equals(task.status)) queued++;
             else if (ResearchTask.RESEARCHING.equals(task.status)) researching++;
             else if (ResearchTask.FAILED.equals(task.status)) failed++;
+            else if (ResearchTask.REVIEW.equals(task.status)) review++;
             else if (ResearchTask.DONE.equals(task.status)) done++;
         }
         Map<String, Integer> out = new LinkedHashMap<>();
         out.put("queued", queued);
         out.put("researching", researching);
+        out.put("review", review);
         out.put("failed", failed);
         out.put("done", done);
-        out.put("active", queued + researching + failed);
+        out.put("active", queued + researching + review + failed);
         out.put("total", tasks.size());
         return out;
     }
 
-    /** worker 认领一条：优先排队，其次到时间重试的失败任务 */
+    /** 认领超过这个时间还没动静的任务：多半是进程被杀或上游挂住。 */
+    private static final long STALE_MS = 3 * 60_000L;
+
+    /** worker 认领一条：优先排队，其次到时间重试的失败任务，最后是卡住的 researching。 */
     public synchronized ResearchTask claimNext() {
         long now = System.currentTimeMillis();
         ResearchTask best = null;
         for (ResearchTask task : tasks) {
+            boolean stale = ResearchTask.RESEARCHING.equals(task.status) && isStale(task, now);
             boolean eligible = ResearchTask.QUEUED.equals(task.status)
+                    || stale
                     || (ResearchTask.FAILED.equals(task.status)
                     && task.attempts < 3
                     && task.nextAttemptAt <= now);
@@ -155,10 +172,41 @@ public class ResearchTaskStore {
             }
         }
         if (best == null) return null;
+        if (ResearchTask.RESEARCHING.equals(best.status)) {
+            System.out.println("[研究队列] 回收卡住的任务：" + best.query);
+        }
         best.status = ResearchTask.RESEARCHING;
         best.updatedAt = Instant.now().toString();
         saveLocked();
         return best;
+    }
+
+    /** 启动时把长时间停在 researching 的任务放回队列，返回处理条数。 */
+    public synchronized int requeueStaleResearching(long olderThanMs) {
+        long now = System.currentTimeMillis();
+        int changed = 0;
+        for (ResearchTask task : tasks) {
+            if (!ResearchTask.RESEARCHING.equals(task.status)) continue;
+            if (!isStale(task, now, olderThanMs)) continue;
+            task.status = ResearchTask.QUEUED;
+            task.updatedAt = Instant.now().toString();
+            changed++;
+        }
+        if (changed > 0) saveLocked();
+        return changed;
+    }
+
+    private boolean isStale(ResearchTask task, long now) {
+        return isStale(task, now, STALE_MS);
+    }
+
+    private boolean isStale(ResearchTask task, long now, long olderThanMs) {
+        try {
+            Instant at = Instant.parse(String.valueOf(task.updatedAt));
+            return now - at.toEpochMilli() > olderThanMs;
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     public synchronized void complete(String id, String resultName, Double confidence, String model, String evidence) {
@@ -186,6 +234,62 @@ public class ResearchTaskStore {
         saveLocked();
     }
 
+    /** Agent 跑完但需要人工确认：草稿与轨迹都留住，先不写库。 */
+    public synchronized void markReview(String id, IngredientAdminService.Draft draft, Double confidence,
+                                        String model, String evidence, String reason,
+                                        List<String> plan, List<ResearchAgent.Step> trace) {
+        ResearchTask task = byIdLocked(id);
+        if (task == null) return;
+        task.status = ResearchTask.REVIEW;
+        task.draft = draft;
+        task.confidence = confidence;
+        task.model = model;
+        task.evidence = evidence == null ? "" : evidence;
+        task.reason = reason == null ? "" : reason;
+        task.plan = plan;
+        task.trace = trace;
+        task.error = "";
+        task.updatedAt = Instant.now().toString();
+        saveLocked();
+    }
+
+    /** 只记录计划与轨迹，不改状态：自动收录后仍能在管理台回看。 */
+    public synchronized void recordTrace(String id, List<String> plan, List<ResearchAgent.Step> trace, String note) {
+        ResearchTask task = byIdLocked(id);
+        if (task == null) return;
+        task.plan = plan;
+        task.trace = trace;
+        if (note != null && !note.isEmpty()) task.reason = note;
+        task.updatedAt = Instant.now().toString();
+        saveLocked();
+    }
+
+    /** 人工通过：标记完成，草稿由调用方写入成分库。 */
+    public synchronized ResearchTask approve(String id) {
+        ResearchTask task = byIdLocked(id);
+        if (task == null) return null;
+        task.status = ResearchTask.DONE;
+        task.resultName = task.draft == null ? task.query : task.draft.name;
+        task.error = "";
+        task.reason = "";
+        task.updatedAt = Instant.now().toString();
+        saveLocked();
+        return task;
+    }
+
+    /** 人工拒绝：保留轨迹与原因，方便以后重跑。 */
+    public synchronized boolean reject(String id, String why) {
+        ResearchTask task = byIdLocked(id);
+        if (task == null) return false;
+        task.status = ResearchTask.FAILED;
+        task.reason = why == null ? "" : why;
+        task.error = "人工拒绝" + (why == null || why.isEmpty() ? "" : "：" + why);
+        task.nextAttemptAt = 0;
+        task.updatedAt = Instant.now().toString();
+        saveLocked();
+        return true;
+    }
+
     public synchronized int retry(List<String> ids, boolean allFailed) {
         Set<String> wanted = new HashSet<>();
         if (ids != null) {
@@ -195,11 +299,14 @@ public class ResearchTaskStore {
         for (ResearchTask task : tasks) {
             boolean hit = allFailed ? ResearchTask.FAILED.equals(task.status) : wanted.contains(task.id);
             if (!hit) continue;
-            if (!ResearchTask.FAILED.equals(task.status) && !ResearchTask.QUEUED.equals(task.status)) continue;
+            if (!ResearchTask.FAILED.equals(task.status)
+                    && !ResearchTask.QUEUED.equals(task.status)
+                    && !ResearchTask.REVIEW.equals(task.status)) continue;
             task.status = ResearchTask.QUEUED;
             task.attempts = 0;
             task.nextAttemptAt = 0;
             task.error = "";
+            task.reason = "";
             task.updatedAt = Instant.now().toString();
             changed++;
         }
@@ -211,6 +318,30 @@ public class ResearchTaskStore {
         boolean removed = tasks.removeIf(task -> task.id.equals(id));
         if (removed) saveLocked();
         return removed;
+    }
+
+    public synchronized ResearchTask find(String id) {
+        return byIdLocked(id);
+    }
+
+    public synchronized ResearchTask findByQuery(String query) {
+        return findLocked(query);
+    }
+
+    /** 这批未收录成分里，失败任务的第一条原因：给报告页显示，而不是只说「失败了」。 */
+    public synchronized String failureReason(List<String> queries) {
+        if (queries == null) return "";
+        for (String query : queries) {
+            ResearchTask task = findLocked(query);
+            if (task == null || !ResearchTask.FAILED.equals(task.status)) continue;
+            String error = task.error == null ? "" : task.error.trim();
+            if (error.isEmpty()) continue;
+            // 只取第一句：完整错误里往往带着「请换一个模型」这类给管理员看的建议
+            int stop = error.indexOf('。');
+            String brief = stop > 0 ? error.substring(0, stop + 1) : error;
+            return brief.length() > 80 ? brief.substring(0, 80) + "…" : brief;
+        }
+        return "";
     }
 
     // ---------------------------------------------------------------- 内部

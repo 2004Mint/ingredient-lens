@@ -93,6 +93,210 @@ public class ResearchService {
         return research(name, context == null ? "" : context, cfg);
     }
 
+    // ---------------------------------------------------------------- 工具调用（Function Calling）
+
+    /** 模型请求调用的工具。 */
+    public static class ToolRequest {
+        public String id;
+        public String name;
+        public String args;
+    }
+
+    /** 一次工具往返：模型要什么、我们返回什么。 */
+    public static class ToolExchange {
+        public String name;
+        public String args;
+        public String result;
+
+        public ToolExchange() {
+        }
+
+        public ToolExchange(String name, String args, String result) {
+            this.name = name;
+            this.args = args;
+            this.result = result;
+        }
+    }
+
+    /** 一轮对话的结果：要么给出最终草稿，要么请求调用一个工具。 */
+    public static class ToolTurn {
+        public Result result;
+        public ToolRequest request;
+        /** 服务商不认 tools 字段时置 true，上层退回确定性计划 */
+        public boolean toolsRejected;
+        public String model;
+    }
+
+    /**
+     * 带工具的一轮调用（OpenAI 兼容的 tools / tool_calls）。
+     *
+     * 两种可能：模型直接给出 JSON 草稿；或者它先要求查一次本地成分库。
+     * 如果服务商不认 tools 字段（400 且报错里提到 tool/function），会自动去掉 tools 重试一次，
+     * 并在返回值里标记 toolsRejected，让 Agent 退回确定性计划 —— 不因为工具不被支持就整条失败。
+     */
+    public static final int TOOL_OFF = 0;
+    public static final int TOOL_AUTO = 1;
+    public static final int TOOL_NONE = 2;
+
+    public ToolTurn turn(String query, String context, List<ToolExchange> exchanges, int toolMode) {
+        String name = query == null ? "" : query.trim();
+        if (name.isEmpty()) throw new ResearchException("要研究的成分名不能为空");
+        VisionSettings cfg = aiConfig.researchEndpoint();
+        if (!cfg.usable()) {
+            throw new ResearchException("还没有配置研究 API。请到「API 与模型」配置总 API 或研究 API。");
+        }
+        String ctx = context == null ? "" : context;
+        if (toolMode == TOOL_OFF) return turnInternal(name, ctx, exchanges, cfg, TOOL_OFF, false);
+
+        try {
+            return turnInternal(name, ctx, exchanges, cfg, toolMode, false);
+        } catch (ResearchException e) {
+            if (isToolRejection(e)) {
+                System.err.println("[研究] 服务商不支持 tools，退回不带工具的调用");
+                return turnInternal(name, ctx, exchanges, cfg, TOOL_OFF, true);
+            }
+            // 空输出 / 不是 JSON：多半是模型把话放进了工具调用里。关掉工具再问一次，通常就能拿到正文。
+            if (toolMode != TOOL_OFF && isEmptyOrUnparsable(e)) {
+                System.err.println("[研究] 输出为空或不是 JSON，关掉工具重试一次");
+                return turnInternal(name, ctx, exchanges, cfg, TOOL_NONE, true);
+            }
+            throw e;
+        }
+    }
+
+    private boolean isEmptyOrUnparsable(ResearchException e) {
+        String message = e.getMessage();
+        if (message == null) return false;
+        return message.contains("空内容") || message.contains("没有返回 JSON") || message.contains("JSON 无法解析");
+    }
+
+    /** 服务商是否在报错里明确说「不认识 tools / function」。 */
+    private boolean isToolRejection(ResearchException e) {
+        Throwable cause = e.getCause();
+        if (!(cause instanceof HttpStatusCodeException)) return false;
+        String body = ((HttpStatusCodeException) cause).getResponseBodyAsString();
+        String lower = body == null ? "" : body.toLowerCase(Locale.ROOT);
+        return lower.contains("tool") || lower.contains("function") || lower.contains("unsupported");
+    }
+
+    /** 暴露给模型的三个只读工具。模型只能查，不能写。 */
+    private static final String TOOLS_JSON =
+            "[{\"type\":\"function\",\"function\":{\"name\":\"search_library\","
+                    + "\"description\":\"在成分库中按名称或别名精确查询一个成分，返回是否已收录、标准名与角色\","
+                    + "\"parameters\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}},\"required\":[\"name\"]}}},"
+                    + "{\"type\":\"function\",\"function\":{\"name\":\"lookup_limit\","
+                    + "\"description\":\"查询某成分在成分库中的法规限量原文；没有记录时返回未收录\","
+                    + "\"parameters\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}},\"required\":[\"name\"]}}},"
+                    + "{\"type\":\"function\",\"function\":{\"name\":\"list_role_examples\","
+                    + "\"description\":\"列出某个角色下的若干成分子示例，用来判断这个角色是否合适\","
+                    + "\"parameters\":{\"type\":\"object\",\"properties\":{\"role\":{\"type\":\"string\","
+                    + "\"enum\":[\"基质\",\"功效\",\"防腐\",\"香精\",\"防晒\",\"表活\"]}},\"required\":[\"role\"]}}}]";
+
+    private ToolTurn turnInternal(String query, String context, List<ToolExchange> exchanges,
+                                  VisionSettings cfg, int toolMode, boolean rejected) {
+        ObjectNode payload = om.createObjectNode();
+        payload.put("model", cfg.model);
+        payload.put("temperature", 0.1);
+        payload.put("max_tokens", 900);
+
+        ArrayNode messages = payload.putArray("messages");
+        ObjectNode sys = messages.addObject();
+        sys.put("role", "system");
+        sys.put("content", SYSTEM_PROMPT + "\n你可以先调用工具核对成分库里的事实，再输出 JSON。");
+
+        ObjectNode user = messages.addObject();
+        user.put("role", "user");
+        user.put("content", userPrompt(query, context));
+
+        if (exchanges != null) {
+            for (int i = 0; i < exchanges.size(); i += 1) {
+                ToolExchange ex = exchanges.get(i);
+                if (ex == null || ex.name == null || ex.name.isEmpty()) continue;
+                String callId = "call_" + i;
+                ObjectNode assistant = messages.addObject();
+                assistant.put("role", "assistant");
+                assistant.putNull("content");
+                ObjectNode call = assistant.putArray("tool_calls").addObject();
+                call.put("id", callId);
+                call.put("type", "function");
+                ObjectNode fn = call.putObject("function");
+                fn.put("name", ex.name);
+                fn.put("arguments", ex.args == null || ex.args.isEmpty() ? "{}" : ex.args);
+
+                ObjectNode toolMsg = messages.addObject();
+                toolMsg.put("role", "tool");
+                toolMsg.put("tool_call_id", callId);
+                toolMsg.put("content", ex.result == null ? "" : ex.result);
+            }
+        }
+
+        if (toolMode != TOOL_OFF) {
+            try {
+                payload.set("tools", om.readTree(TOOLS_JSON));
+                // none = 保留工具定义但禁止模型调用，用于「工具次数用完后强制它作答」
+                payload.put("tool_choice", toolMode == TOOL_NONE ? "none" : "auto");
+            } catch (Exception ignore) {
+                // JSON 常量写错了也不该影响主流程
+            }
+        }
+
+        String body = postChat(cfg, payload);
+        JsonNode root;
+        try {
+            root = om.readTree(body == null ? "{}" : body);
+        } catch (Exception e) {
+            throw new ResearchException("研究服务返回的内容无法解析。", e);
+        }
+
+        JsonNode message = root.path("choices").path(0).path("message");
+
+        JsonNode toolCalls = message.path("tool_calls");
+        if (toolCalls.isArray() && toolCalls.size() > 0) {
+            JsonNode call = toolCalls.get(0);
+            String fnName = call.path("function").path("name").asText("");
+            if (!fnName.isEmpty()) {
+                ToolRequest req = new ToolRequest();
+                req.id = call.path("id").asText("call_0");
+                req.name = fnName;
+                req.args = call.path("function").path("arguments").asText("{}");
+                ToolTurn turn = new ToolTurn();
+                turn.request = req;
+                turn.model = cfg.model;
+                turn.toolsRejected = rejected;
+                return turn;
+            }
+        }
+
+        // 老式 function_call 也兼容一下
+        JsonNode legacy = message.path("function_call");
+        if (legacy.isObject() && !legacy.path("name").asText("").isEmpty()) {
+            ToolRequest req = new ToolRequest();
+            req.id = "call_0";
+            req.name = legacy.path("name").asText();
+            req.args = legacy.path("arguments").asText("{}");
+            ToolTurn turn = new ToolTurn();
+            turn.request = req;
+            turn.model = cfg.model;
+            turn.toolsRejected = rejected;
+            return turn;
+        }
+
+        String content = extractText(message.path("content"));
+        if (content.isEmpty()) {
+            throw new ResearchException("研究模型返回了空内容。请确认模型名是否正确，或换一个文本模型。");
+        }
+        JsonNode json = parseJson(content);
+        Result r = toResult(query, json, cfg.model);
+        if (r.draft == null || r.draft.name == null || r.draft.name.trim().isEmpty()) {
+            throw new ResearchException("研究模型没有返回可用的成分名。");
+        }
+        ToolTurn turn = new ToolTurn();
+        turn.result = r;
+        turn.model = cfg.model;
+        turn.toolsRejected = rejected;
+        return turn;
+    }
+
     /** 管理台批量研究已有成分：结果回到待研究 */
     public BatchResult researchExisting(List<String> names) {
         BatchResult result = new BatchResult();
