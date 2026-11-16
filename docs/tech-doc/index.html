@@ -713,7 +713,7 @@
     区别不在于用了多少模型，而在于<b>决策是不是数据驱动的、过程是不是可见的</b>。
   </div>
 
-  <h2><span class="no">4.5</span>多模态：拍照识别链路</h2>
+  <h2><span class="no">4.5</span>多模态：拍照识别与语音输入</h2>
   <div class="steps">
     <div class="step"><span class="i">01</span><div class="c"><b>用户主动拍照 / 选图</b><span>未配置视觉模型时入口不显示</span></div></div>
     <div class="step"><span class="i">02</span><div class="c"><b>发给视觉模型</b><span>要求只返回成分表文本，不解释、不补全</span></div></div>
@@ -723,6 +723,11 @@
   <p>
     <b>为什么不让视觉模型直接出结论：</b>识别错误会一路传导致结论错误。把图像识别限制在“转写文本”这一步，
     用户能看到并纠正中间结果——这比一个看不见的错误链条可靠得多。
+  </p>
+  <p>
+    <b>语音是第二条输入通道：</b>Web Speech API 把口述的成分表转成文本，同样回到这条解析链路；
+    报告页用 SpeechSynthesis 朗读结论。识别与朗读都在浏览器内完成，不上传音频，也不增加服务端成本；
+    浏览器不支持时入口直接隐藏，降级成粘贴——多模态是增强，不是前置条件。
   </p>
 
   <h2><span class="no">4.6</span>AI 可控性：六道闸门</h2>
@@ -741,7 +746,7 @@
 
   <h2><span class="no">4.7</span>评测：可复现的结果</h2>
   <p>
-    闸门、断流判定与 Agent 的决策逻辑都是纯函数，因此可以在无网络、无 Key 的情况下测试。仓库里有三个测试类：
+    闸门、断流判定与 Agent 的决策逻辑都是纯函数，因此可以在无网络、无 Key 的情况下测试。仓库里有五个测试类：
   </p>
   <table>
     <thead><tr><th style="width:30%">测试</th><th style="width:10%">方法数</th><th>覆盖</th></tr></thead>
@@ -1078,7 +1083,7 @@
       <tr><td>跨域</td><td>开发期由 Vite 代理 <span class="m">/api → 127.0.0.1:8082</span>，避免后端开 CORS</td></tr>
       <tr><td>数据目录</td><td>默认 <span class="m">~/.cosme/data</span>，可用 <span class="m">-Dcosme.data.dir</span> 或环境变量 <span class="m">COSME_DATA_DIR</span> 覆盖；启动日志会打印实际目录</td></tr>
       <tr><td>密钥</td><td>不在仓库、不在前端；由管理台写入本地配置文件，仅本机可读</td></tr>
-      <tr><td>构建产物</td><td>CSS 104 KB（gzip 20.4 KB）· JS 264 KB（gzip 93.7 KB）· 单页应用，无外部 CDN 依赖</td></tr>
+      <tr><td>构建产物</td><td>首屏 JS 165 KB（gzip 65 KB）· CSS 70 KB（gzip 14 KB）；管理台/成分库/历史等路由按需加载（管理台另 85 KB），无外部 CDN 依赖</td></tr>
     </tbody>
   </table>
 
