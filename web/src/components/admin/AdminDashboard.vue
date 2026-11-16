@@ -108,7 +108,7 @@ function reportLevel(item) {
           待研究
         </span>
         <span class="ac-kpi-value">{{ counts.pending ?? '—' }}<small>条</small></span>
-        <span class="ac-kpi-meta">AI 研究结果需人工确认</span>
+        <span class="ac-kpi-meta">AI 收录，已参与匹配，待人复核</span>
       </button>
 
       <button type="button" class="ac-kpi" @click="emit('navigate', { id: 'ingredients', status: 'confirmed' })">

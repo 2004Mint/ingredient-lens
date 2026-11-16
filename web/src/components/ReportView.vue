@@ -1,8 +1,9 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AnimatedNumber from './AnimatedNumber.vue'
 import IngredientDetail from './IngredientDetail.vue'
 import LadderChart from './LadderChart.vue'
+import CompareBars from './CompareBars.vue'
 import StreamText from './StreamText.vue'
 import ProfileControls from './ProfileControls.vue'
 import { profileLabel } from '../lib/text.js'
@@ -53,7 +54,63 @@ const unknown = computed(() => props.data.unknown || [])
 const researched = computed(() => props.data.researched || [])
 const researchQueued = computed(() => Number(props.data.researchQueued || 0) + Number(props.data.researchRunning || 0))
 const researchFailed = computed(() => Number(props.data.researchFailed || 0))
+const researchReview = computed(() => Number(props.data.researchReview || 0))
+const failedReason = computed(() => String(props.data.researchFailedReason || ''))
+
+/** 未收录成分的名字：研究期间用来告诉用户「正在查哪些」 */
+const unknownNames = computed(() => {
+  const list = props.data?.unknown || props.data?.unresolved || []
+  if (!Array.isArray(list)) return []
+  return list.map((item) => (item && typeof item === 'object' ? item.name || '' : String(item))).filter(Boolean)
+})
+
+/**
+ * 研究还没跑完时，先不给结论：只显示进度。
+ * 研究 API 没配置时不算「研究中」，否则页面会永远卡在进度页。
+ */
+const researching = computed(() => {
+  if (props.data?.researchEnabled === false) return false
+  return researchQueued.value > 0
+})
+
+/* 等了几秒：让用户看到页面是活的，而不是一张静止的图 */
+const elapsed = ref(0)
+let elapsedTimer = 0
+watch(
+  researching,
+  (on) => {
+    window.clearInterval(elapsedTimer)
+    elapsed.value = 0
+    if (!on) return
+    elapsedTimer = window.setInterval(() => { elapsed.value += 1 }, 1000)
+  },
+  { immediate: true }
+)
+onBeforeUnmount(() => window.clearInterval(elapsedTimer))
+
+const progressWidth = computed(() => {
+  const total = Math.max(1, Number(props.data?.total) || 0)
+  const done = Math.max(0, total - researchQueued.value - researchReview.value)
+  return Math.max(4, Math.min(100, Math.round((done / total) * 100)))
+})
 const researchEnabled = computed(() => props.data.researchEnabled !== false)
+const chartMode = ref('bars')
+
+/** 每个成分的风险等级：来自 flags，用来在对比图上打红黄点 */
+const riskByName = computed(() => {
+  const map = new Map()
+  for (const flag of flags.value || []) {
+    if (flag.level !== 'high' && flag.level !== 'medium') continue
+    const names = (flag.ingredients && flag.ingredients.length)
+      ? flag.ingredients
+      : (flag.details || []).map((d) => d && d.name)
+    for (const name of names) {
+      if (name && !map.has(name)) map.set(name, flag.level)
+    }
+  }
+  return map
+})
+
 const sequence = computed(() =>
   props.data.sequence && props.data.sequence.length ? props.data.sequence : props.data.ladder || []
 )
@@ -62,11 +119,16 @@ const unrecognized = computed(() => view.value.unrecognized)
 
 const conceptCount = computed(() => actives.value.filter((a) => a.tier === 'tail').length)
 
-function ingredientCount(groups) {
-  return groups.reduce((n, f) => n + (f.ingredients || []).length, 0)
+/** 同一成分可能同时命中两条规则（孕期 + 敏感肌），统计要按成分去重 */
+function distinctCount(groups) {
+  const names = new Set()
+  for (const f of groups) {
+    for (const n of f.ingredients || []) if (n) names.add(n)
+  }
+  return names.size
 }
 
-const highCount = computed(() => ingredientCount(highFlags.value))
+const highCount = computed(() => distinctCount(highFlags.value))
 const riskGroups = computed(() => highFlags.value.length + medFlags.value.length)
 
 /* 结论本身就是「认得太少」时，不再补一句「没有需要回避的成分」 */
@@ -107,7 +169,7 @@ const stats = computed(() => [
 const anchors = computed(() => {
   const list = [{ id: 'verdict', label: '结论' }]
   if (!unrecognized.value) {
-    if (sequence.value.length) list.push({ id: 'ladder', label: '配方梯队' })
+    if (sequence.value.length) list.push({ id: 'ladder', label: '成分对比' })
     if (showRisks.value) list.push({ id: 'risks', label: '风险' })
     if (actives.value.length) list.push({ id: 'actives', label: '功效' })
     if (insights.value.length) list.push({ id: 'insights', label: '发现' })
@@ -153,15 +215,23 @@ function openIngredient(name, context = {}) {
   const item = library.value.find(
     (row) => row.name === clean || (row.aliases || []).includes(clean)
   )
+  // 从风险标签点进来时只带了名字：排位必须回到本次报告里查，
+  // 否则详情页会拿不到 index，模型就会把「没有排位」说成「排在第一位」。
+  const row = sequence.value.find((r) => r && r.name === clean)
+  const merged = { ...(row || {}) }
+  for (const [k, v] of Object.entries(context)) {
+    if (v !== undefined && v !== null && v !== '') merged[k] = v
+  }
+  merged.name = clean
   detail.value = {
     item: item || {
       name: clean,
-      role: context.role || '',
-      cat: context.cat || '',
-      function: context.fn || context.comment || '',
+      role: merged.role || '',
+      cat: merged.cat || '',
+      function: merged.fn || merged.comment || '',
       aliases: []
     },
-    context: { ...context, name: clean }
+    context: merged
   }
 }
 
@@ -186,7 +256,7 @@ onMounted(async () => {
           <span v-if="recomputing" class="recalc"><i class="spinner"></i>重算</span>
         </div>
 
-        <div class="bar-actions">
+        <div v-if="!researching" class="bar-actions">
           <button
             type="button"
             class="bar-btn"
@@ -200,6 +270,7 @@ onMounted(async () => {
           <button type="button" class="bar-btn hide-sm" @click="emit('print')">打印</button>
           <button type="button" class="bar-btn" @click="emit('back')">修改成分表</button>
         </div>
+        <span v-else class="bar-researching"><i class="pulse"></i>正在研究未收录成分</span>
       </div>
 
       <div v-if="drawerOpen" class="drawer">
@@ -207,7 +278,7 @@ onMounted(async () => {
         <p class="drawer-note">改动后立即重算，结论和风险会跟着变。</p>
       </div>
 
-      <nav v-if="anchors.length > 1" class="anchors" aria-label="报告目录">
+      <nav v-if="!researching && anchors.length > 1" class="anchors" aria-label="报告目录">
         <button v-for="a in anchors" :key="a.id" type="button" @click="jump(a.id)">
           {{ a.label }}
         </button>
@@ -221,7 +292,47 @@ onMounted(async () => {
       <button type="button" class="btn" @click="emit('retry')">重试</button>
     </div>
 
-    <div class="report-body">
+    <!-- 研究未完成：只给进度，先不给结论 -->
+    <section v-if="researching" class="researching reveal" aria-live="polite">
+      <p class="eyebrow">Agent 正在补全成分库</p>
+      <h1 class="rh serif">正在把这瓶的成分查清楚</h1>
+      <p class="rsub">
+        有 {{ researchQueued }} 个成分不在成分库里。Agent 正在逐个查证并自动收录，
+        全部完成之前先不给结论 —— 少一个成分就下的结论，不如不给。
+      </p>
+
+      <div class="rbar" role="progressbar" :aria-valuenow="view.total - researchQueued" :aria-valuemin="0" :aria-valuemax="view.total">
+        <i :style="{ width: progressWidth + '%' }"></i>
+      </div>
+      <div class="rmeta">
+        <span><b>{{ view.total - researchQueued }}</b> / {{ view.total }} 已就绪</span>
+        <span v-if="researchQueued" class="pending">
+          <i class="ring"></i>{{ researchQueued }} 个研究中
+        </span>
+        <span class="elapsed">已等待 {{ elapsed }}s</span>
+        <span class="auto">完成后自动显示结论，不用刷新</span>
+      </div>
+
+      <p v-if="elapsed >= 60" class="rslow">
+        这个成分比较生僻，Agent 正在多查几次（查库、查限量、比对同类）。可以先去忙别的，回来就能看到结果。
+      </p>
+
+      <ul v-if="unknownNames.length" class="rlist">
+        <li v-for="name in unknownNames.slice(0, 8)" :key="name">
+          <i class="ring small"></i>
+          <span class="rname">{{ name }}</span>
+          <span class="rtag">查证中</span>
+        </li>
+        <li v-if="unknownNames.length > 8" class="rmore">还有 {{ unknownNames.length - 8 }} 个…</li>
+      </ul>
+
+      <p class="rfoot">
+        收录结果会在成分库标记为「AI 研究」，你可以随时在管理台复核。
+        <button type="button" class="vnote-link" @click="emit('refresh-research')">没等到更新？立即重新检查</button>
+      </p>
+    </section>
+
+    <div v-else class="report-body">
       <div class="report-meta reveal" style="--i: 0">
         <div class="rm-main">
           <span class="rm-label">产品</span>
@@ -264,13 +375,17 @@ onMounted(async () => {
           AI 已补全 {{ researched.length }} 个成分并加入待研究库，报告已按新数据重算。
         </p>
 
-        <div v-if="researchQueued || researchFailed" class="research-status">
+        <div v-if="researchQueued || researchReview || researchFailed" class="research-status">
           <p v-if="researchQueued" class="vnote research">
             {{ researchQueued }} 个成分已进入 AI 研究队列{{ researchEnabled ? '，完成后报告会自动刷新' : '，等待研究 API 配置' }}。
             <button type="button" class="vnote-link" @click="emit('refresh-research')">立即刷新</button>
           </p>
+          <p v-if="researchReview" class="vnote review">
+            {{ researchReview }} 个成分已有研究草稿，还没写进成分库 —— 到管理台确认后会参与下一次分析。
+          </p>
           <p v-if="researchFailed" class="vnote research-fail">
-            {{ researchFailed }} 个成分研究失败，已保留在后台任务，可到管理控制台重试。
+            {{ researchFailed }} 个成分这次没研究成功<template v-if="failedReason">（{{ failedReason }}）</template>。
+            点「立即刷新」会重新排队；连续失败的可以稍后再来。
           </p>
         </div>
 
@@ -301,17 +416,44 @@ onMounted(async () => {
         <div class="sec-head">
           <div class="sec-copy">
             <span class="eyebrow">位置即含量</span>
-            <h2 class="h2 serif">配方梯队</h2>
+            <h2 class="h2 serif">成分对比</h2>
           </div>
-          <span class="sec-meta">{{ totalText }}</span>
+          <div class="view-switch no-print" role="tablist" aria-label="切换视图">
+            <button
+              type="button"
+              role="tab"
+              :aria-selected="chartMode === 'bars'"
+              :class="{ on: chartMode === 'bars' }"
+              @click="chartMode = 'bars'"
+            >对比图</button>
+            <button
+              type="button"
+              role="tab"
+              :aria-selected="chartMode === 'ladder'"
+              :class="{ on: chartMode === 'ladder' }"
+              @click="chartMode = 'ladder'"
+            >梯队</button>
+          </div>
         </div>
         <p class="hint">
-          法规要求成分按含量从高到低排列，所以「排在第几位」本身就是信息。虚线框是待补全的成分，排位仍按原顺序保留。
+          <template v-if="chartMode === 'bars'">
+            每条的长度是相对排位，颜色是成分角色，红黄标记是你档案里的冲突项 —— 一眼能看出这瓶是什么构成、该避什么。
+          </template>
+          <template v-else>
+            法规要求成分按含量从高到低排列，所以「排在第几位」本身就是信息。虚线框是待补全的成分，排位仍按原顺序保留。
+          </template>
         </p>
         <p v-if="data.truncated" class="hint warn">
           成分表超过 150 个，这次只分析前 150 个。
         </p>
-        <LadderChart :items="sequence" @select="openIngredient" />
+        <CompareBars
+          v-if="chartMode === 'bars'"
+          :items="sequence"
+          :risks="riskByName"
+          :total="Number(data.total) || sequence.length"
+          @select="openIngredient"
+        />
+        <LadderChart v-else :items="sequence" @select="openIngredient" />
       </section>
 
       <section v-if="showRisks" id="risks" class="card reveal" style="--i: 3">
@@ -495,10 +637,10 @@ onMounted(async () => {
   top: 0;
   z-index: 30;
   border: 1px solid var(--line);
-  border-top: none;
-  border-radius: 0 0 14px 14px;
-  background: var(--bg);
-  box-shadow: 0 14px 30px -30px rgba(26, 23, 19, .8);
+  border-radius: 12px;
+  background: rgba(241, 236, 223, .94);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 26px -30px rgba(38, 30, 18, .9);
   overflow: hidden;
 }
 
@@ -515,12 +657,15 @@ onMounted(async () => {
 
 .badge {
   flex-shrink: 0;
-  padding: 3px 9px;
-  border-radius: 6px;
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: .04em;
-  background: #fff;
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  background: var(--card);
 }
 
 .badge.lv-avoid { color: var(--danger); }
@@ -624,34 +769,52 @@ onMounted(async () => {
 .bar-error .btn { background: #fff; border-color: #EBC9C0; color: var(--danger); }
 
 /* ----------------------------- 正文 ----------------------------- */
-.report-body { display: flex; flex-direction: column; gap: 14px; }
+.report-body { display: flex; flex-direction: column; gap: 18px; }
 
 .report-meta {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 0 4px 2px;
-  font-size: 11.5px;
-  color: var(--ink3);
+  padding: 2px 2px 12px;
+  border-bottom: 1px solid var(--line2);
+  position: relative;
 }
 
-.rm-main { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.report-meta::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 1px;
+  background: var(--line);
+}
 
-.rm-label { font-size: 10px; letter-spacing: .1em; color: var(--ink3); }
+.rm-main { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; min-width: 0; }
+
+.rm-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
 
 .rm-name {
-  width: 160px;
-  max-width: 240px;
-  padding: 2px 2px;
+  width: 240px;
+  max-width: 100%;
+  padding: 0 2px;
   border: none;
   border-bottom: 1px dashed transparent;
   background: transparent;
   color: var(--ink);
-  font-family: inherit;
-  font-size: 12.5px;
+  font-family: var(--serif);
+  font-size: 23px;
   font-weight: 600;
+  letter-spacing: -.01em;
+  line-height: 1.35;
   outline: none;
 }
 
@@ -661,50 +824,96 @@ onMounted(async () => {
 
 .rm-name:focus { border-bottom-color: var(--accent); }
 
-.rm-id, .rm-time, .rm-rules { white-space: nowrap; }
+.rm-id, .rm-time, .rm-rules {
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: .1em;
+  color: var(--ink3);
+}
 
+.rm-id { margin-left: auto; }
+
+/* 标本卡：左侧打孔纸条 + 右上角印章 */
 .verdict {
   position: relative;
-  overflow: hidden;
-  padding: 26px 26px 22px;
-  border: 1px solid;
-  border-radius: 20px;
+  padding: 26px 30px 24px 88px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
   box-shadow: var(--shadow-sm);
 }
 
-.verdict::after {
-  content: '';
+.verdict::before {
+  content: "Specimen";
   position: absolute;
-  right: -70px;
-  bottom: -110px;
-  width: 260px;
-  height: 260px;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 54px;
+  display: grid;
+  place-items: center;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  border-right: 1px dashed var(--line2);
+  border-radius: 16px 0 0 16px;
+  background: linear-gradient(180deg, #F7F1E2, #EFE6D2);
+  color: var(--brass);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+}
+
+/* 印章 = 结论的确定性，全页只有一个 */
+.verdict::after {
+  content: "避";
+  position: absolute;
+  top: -14px;
+  right: 30px;
+  width: 68px;
+  height: 68px;
+  display: grid;
+  place-items: center;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, .85), transparent 68%);
+  border: 2px solid currentColor;
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--danger);
+  background: radial-gradient(circle at 50% 50%, #FFFDF7 46%, #FAEAE4 47%);
+  box-shadow: 0 0 0 3px var(--card), 0 0 0 4px rgba(162, 58, 40, .22), 0 10px 24px -16px rgba(162, 58, 40, .55);
+  transform: rotate(-9deg);
   pointer-events: none;
 }
 
-.lv-avoid { background: linear-gradient(150deg, #FBEDE6, #FCF8F2 62%); border-color: var(--danger-line); }
-.lv-caution { background: linear-gradient(150deg, #FCF3DF, #FCFAF4 62%); border-color: var(--warn-line); }
-.lv-good { background: linear-gradient(150deg, #E8F3EC, #F9FCFA 62%); border-color: var(--good-line); }
-.lv-insufficient { background: linear-gradient(150deg, #FBF3E0, #FCFAF4 62%); border-color: var(--warn-line); }
-.lv-unknown { background: linear-gradient(150deg, #F1EEE5, #FAF8F3 62%); border-color: var(--line2); }
+.verdict.lv-caution::after { content: "慎"; color: var(--warn); background: radial-gradient(circle at 50% 50%, #FFFDF7 46%, #F8EFD8 47%); box-shadow: 0 0 0 3px var(--card), 0 0 0 4px rgba(138, 90, 18, .22), 0 10px 24px -16px rgba(138, 90, 18, .5); }
+.verdict.lv-good::after { content: "宜"; color: var(--good); background: radial-gradient(circle at 50% 50%, #FFFDF7 46%, #E6F0E9 47%); box-shadow: 0 0 0 3px var(--card), 0 0 0 4px rgba(44, 115, 85, .22), 0 10px 24px -16px rgba(44, 115, 85, .5); }
+.verdict.lv-insufficient::after { content: "待补"; font-size: 13px; letter-spacing: .06em; color: var(--ink3); border-style: dashed; background: radial-gradient(circle at 50% 50%, #FFFDF7 46%, #F1ECDF 47%); box-shadow: 0 0 0 3px var(--card), 0 10px 24px -16px rgba(38, 30, 18, .4); }
+.verdict.lv-unknown::after { content: "存疑"; font-size: 13px; letter-spacing: .06em; color: var(--ink3); border-style: dashed; background: radial-gradient(circle at 50% 50%, #FFFDF7 46%, #F1ECDF 47%); box-shadow: 0 0 0 3px var(--card), 0 10px 24px -16px rgba(38, 30, 18, .4); }
 
-.vtop { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.lv-avoid, .lv-caution, .lv-good, .lv-insufficient, .lv-unknown { border-color: var(--line); }
+
+.vtop { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
 
 .vtag {
-  padding: 3px 10px;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, .78);
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: .08em;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
 }
 
-.lv-avoid .vtag { color: var(--danger); }
-.lv-caution .vtag { color: var(--warn); }
-.lv-good .vtag { color: var(--good); }
-.lv-insufficient .vtag { color: var(--warn); }
+.lv-avoid .vtag { color: var(--danger); background: var(--danger-soft); border-color: var(--danger-line); }
+.lv-caution .vtag { color: var(--warn); background: var(--warn-soft); border-color: var(--warn-line); }
+.lv-good .vtag { color: var(--good); background: var(--good-soft); border-color: var(--good-line); }
+.lv-insufficient .vtag { color: var(--warn); background: var(--warn-soft); border-color: var(--warn-line); }
 .lv-unknown .vtag { color: var(--ink2); }
 
 .vmeta {
@@ -720,14 +929,22 @@ onMounted(async () => {
 .vhead {
   position: relative;
   z-index: 1;
-  font-size: 32px;
+  max-width: 22em;
+  font-size: 30px;
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.4;
   letter-spacing: -.01em;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
-.vsum { position: relative; z-index: 1; font-size: 14px; line-height: 1.9; color: var(--ink2); }
+.vsum {
+  position: relative;
+  z-index: 1;
+  max-width: 36em;
+  font-size: 14.5px;
+  line-height: 1.92;
+  color: var(--ink2);
+}
 
 .vnote {
   position: relative;
@@ -750,6 +967,7 @@ onMounted(async () => {
 
 .research-status { display: grid; gap: 6px; }
 .vnote.research { color: #3C6788; border-color: #D8E3EC; background: #F7FAFC; }
+.vnote.review { color: var(--amber, #8A5A12); border-color: var(--warn-line, #E8D8B4); background: #FCF8EE; }
 .vnote.research-fail { color: #8A4B3F; border-color: #EED9D2; background: #FCF7F4; }
 .vnote-link {
   border: 0;
@@ -798,30 +1016,201 @@ onMounted(async () => {
 
 .delta-x:hover { background: rgba(0, 0, 0, .05); color: var(--ink); }
 
-/* 数据条 */
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+/* 研究中的进度页：只给进度，不给结论 */
+.bar-researching {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.researching { max-width: 760px; padding: 40px 6px 16px; }
+
+.researching .rh {
+  font-size: 28px;
+  line-height: 1.42;
+  letter-spacing: -.01em;
+  margin: 10px 0 12px;
+}
+
+.researching .rsub {
+  max-width: 34em;
+  font-size: 14px;
+  line-height: 1.95;
+  color: var(--ink2);
+}
+
+.rbar {
+  position: relative;
+  height: 6px;
+  margin: 28px 0 12px;
+  border-radius: 999px;
+  background: #EFEAE0;
+  overflow: hidden;
+}
+
+.rbar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), #4C9B87);
+  transition: width .45s cubic-bezier(.22, .61, .36, 1);
+}
+
+/* 进度条上跑一道光：即使宽度不变，也能看出页面是活的 */
+.rbar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .55), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 1.9s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  to { transform: translateX(100%); }
+}
+
+/* 旋转的小圈：比静止的圆点更像「在干活」 */
+.ring {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(23, 89, 74, .22);
+  border-top-color: var(--accent);
+  animation: spin .8s linear infinite;
+}
+
+.ring.small { width: 11px; height: 11px; border-width: 1.5px; }
+
+.rmeta .elapsed { font-variant-numeric: tabular-nums; color: var(--ink3); }
+
+.rslow {
+  margin: 14px 0 0;
+  padding: 9px 12px;
+  border: 1px dashed var(--warn-line);
+  border-radius: 8px;
+  background: #FCF8EE;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--warn);
+}
+
+.rmeta {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--ink3);
+}
+
+.rmeta b {
+  font-family: var(--serif);
+  font-size: 17px;
+  color: var(--ink);
+  margin-right: 2px;
+}
+
+.rmeta .pending { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); }
+.rmeta .auto { margin-left: auto; }
+
+.rlist {
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.rlist li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 2px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+  color: var(--ink3);
+}
+
+.rlist .rname { color: var(--ink); }
+.rlist .rtag { margin-left: auto; font-size: 11px; color: var(--ink3); }
+.rlist .rmore { font-size: 12px; }
+
+.rfoot { margin-top: 18px; font-size: 12px; color: var(--ink3); }
+
+@media (max-width: 640px) {
+  .researching { padding: 26px 2px 12px; }
+  .researching .rh { font-size: 23px; }
+  .rmeta .auto { margin-left: 0; flex-basis: 100%; }
+}
+
+/* 视图切换：对比图 / 梯队 */
+.view-switch {
+  display: inline-flex;
+  margin-left: auto;
+  border: 1px solid var(--line2);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.view-switch button {
+  padding: 4px 11px;
+  border: 0;
+  background: var(--card);
+  color: var(--ink3);
+  font-size: 11.5px;
+}
+.view-switch button + button { border-left: 1px solid var(--line); }
+.view-switch button.on {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+/* 数据条：四个数字，一条横线，不做四张卡 */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  padding: 0 2px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
 
 .stat {
-  padding: 15px 14px 13px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--card);
-  box-shadow: var(--shadow-sm);
+  padding: 14px 0 12px 18px;
+  border-left: 1px solid var(--line);
+  background: none;
+  box-shadow: none;
 }
+
+.stat:first-child { border-left: none; padding-left: 2px; }
 
 .num {
-  font-size: 28px;
-  font-weight: 700;
-  line-height: 1.15;
+  font-family: var(--serif);
+  font-size: 31px;
+  font-weight: 600;
+  line-height: 1.1;
   letter-spacing: -.02em;
+  color: var(--ink);
 }
 
-.slabel { margin-top: 2px; font-size: 11.5px; color: var(--ink3); }
+.slabel { margin-top: 3px; font-size: 11.5px; color: var(--ink3); }
 
-.stat.hot { border-color: var(--warn-line); background: linear-gradient(180deg, #FEFAF0, #fff); }
+.stat.hot { border-color: var(--line); }
 .stat.hot .num { color: var(--warn); }
 
-.stat.danger { border-color: var(--danger-line); background: linear-gradient(180deg, #FDF3EF, #fff); }
+.stat.danger { border-color: var(--line); }
 .stat.danger .num { color: var(--danger); }
 
 /* 通用卡片 */
@@ -829,10 +1218,12 @@ onMounted(async () => {
 
 .sec-head {
   display: flex;
-  align-items: flex-end;
+  align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 6px;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line2);
 }
 
 .sec-copy { display: flex; flex-direction: column; gap: 3px; }
@@ -858,56 +1249,65 @@ onMounted(async () => {
   letter-spacing: .08em;
 }
 
-.gtitle::before { content: ''; width: 6px; height: 6px; border-radius: 2px; background: currentColor; }
+.gtitle::before { content: ''; width: 14px; height: 1px; background: currentColor; }
 
 .gtitle.danger { color: var(--danger); }
 .gtitle.warn { color: var(--warn); }
 
+/* 风险条目：行式 + 左侧色条，不做彩块卡片 */
 .flag {
-  padding: 13px 15px;
-  border: 1px solid;
-  border-radius: 12px;
-  margin-bottom: 8px;
+  padding: 13px 2px 14px 16px;
+  border: none;
+  border-left: 2px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  margin-bottom: 0;
+  background: none;
 }
 
-.flag:last-child { margin-bottom: 0; }
+.flag:last-child { margin-bottom: 0; border-bottom: none; }
 
-.flag.high { background: var(--danger-soft); border-color: var(--danger-line); }
-.flag.medium { background: var(--warn-soft); border-color: var(--warn-line); }
+.flag.high { border-left-color: var(--danger); }
+.flag.medium { border-left-color: var(--warn); }
 
 .flag-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 
 .flag-type {
   flex-shrink: 0;
   padding: 1px 7px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, .82);
-  font-size: 10.5px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--paper-2);
+  font-family: var(--mono);
+  font-size: 9px;
   font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
 }
 
-.flag.high .flag-type { color: var(--danger); }
-.flag.medium .flag-type { color: var(--warn); }
+.flag.high .flag-type { color: var(--danger); border-color: var(--danger-line); }
+.flag.medium .flag-type { color: var(--warn); border-color: var(--warn-line); }
 
-.fmsg { font-size: 13.5px; font-weight: 600; line-height: 1.65; }
+.fmsg { font-size: 14.5px; font-weight: 600; line-height: 1.65; }
 
 .names { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
 
 .nm {
-  padding: 2px 9px;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, .85);
+  padding: 1px 8px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--paper-2);
   color: var(--ink2);
-  font-size: 12px;
+  font-size: 11.5px;
 }
 
-.fbasis { margin-top: 6px; font-size: 12.5px; line-height: 1.8; color: var(--ink2); }
+.fbasis { margin-top: 7px; font-size: 12.5px; line-height: 1.8; color: var(--ink2); }
 
 .notes {
   list-style: none;
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px dashed rgba(26, 23, 19, .1);
+  border-top: 1px dotted var(--line2);
 }
 
 .notes li {
@@ -1088,14 +1488,20 @@ onMounted(async () => {
 
 /* 移动端 */
 @media (max-width: 979px) {
-  .bar { border-radius: 0 0 12px 12px; }
+  .bar { border-radius: 10px; }
   .bar-inner { padding: 8px 10px; }
   .hide-sm { display: none; }
   .drawer { padding: 2px 10px 10px; }
   .card { padding: 18px 16px; }
-  .verdict { padding: 20px 18px 18px; border-radius: 16px; }
+  .verdict { padding: 20px 16px 18px 68px; border-radius: 14px; }
+  .verdict::before { width: 40px; font-size: 8px; letter-spacing: .22em; border-radius: 14px 0 0 14px; }
+  .verdict::after { width: 56px; height: 56px; font-size: 17px; right: 18px; top: -12px; }
+  .lv-insufficient::after, .lv-unknown::after { font-size: 11px; }
   .vhead { font-size: 25px; }
   .stats { grid-template-columns: repeat(2, 1fr); }
+  .stat { padding: 12px 0 10px 16px; }
+  .stat:nth-child(odd) { border-left: none; padding-left: 2px; }
+  .stat:nth-child(n + 3) { border-top: 1px solid var(--line); }
   .report-foot { justify-content: stretch; }
   .report-foot .btn { flex: 1; }
   .report-foot .primary { margin-left: 0; flex-basis: 100%; order: -1; }
@@ -1107,9 +1513,10 @@ onMounted(async () => {
   .bar-actions { width: 100%; margin-left: 0; justify-content: space-between; gap: 4px; }
   .bar-btn { flex: 1; padding: 5px 4px; text-align: center; }
   .anchors { display: none; }
+  .vtop { padding-right: 58px; }
   .vhead { font-size: 23px; }
   .report-meta { gap: 4px; }
-  .rm-name { width: 118px; }
+  .rm-name { width: 100%; font-size: 21px; }
   .rm-time { font-size: 10.5px; }
 }
 </style>

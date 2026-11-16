@@ -208,6 +208,9 @@ export function buildReportText(report, meta = {}) {
     lines.push('风险提示：')
     for (const f of risks) {
       lines.push(`· ${f.message}`)
+      // 合并后的提示是「以下 N 个成分」，不列名字的话这句话就断了
+      const names = (f.ingredients || []).filter(Boolean)
+      if (names.length > 1) lines.push(`  ${names.join('、')}`)
       if (f.basis) lines.push(`  ${f.basis}`)
     }
   } else {
@@ -219,7 +222,8 @@ export function buildReportText(report, meta = {}) {
     lines.push('')
     lines.push('功效成分位置：')
     for (const a of actives) {
-      lines.push(`· ${a.name}：第 ${a.index + 1} 位，${a.comment}`)
+      // comment 里已经写着「排在第 N 位」，前面再补一次会变成「第 5 位，排在第 5 位」
+      lines.push(`· ${a.name}：${a.comment || `第 ${a.index + 1} 位`}`)
     }
   }
 

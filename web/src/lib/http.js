@@ -1,5 +1,5 @@
 function networkMessage() {
-  return '连不上本机后端（8082），请先启动 start-server.bat，再点重试'
+  return '连不上本机后端。先启动 start-server.bat，再点重试'
 }
 
 export async function requestJSON(url, { method = 'GET', body, timeout = 15000 } = {}) {

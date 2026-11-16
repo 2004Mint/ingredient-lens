@@ -40,11 +40,12 @@ function sampleTitle(name) {
   <section class="card intake">
     <div class="head">
       <div class="head-copy">
-        <span class="eyebrow">第一步</span>
+        <span class="eyebrow">第一步 · 样本输入</span>
         <h2 id="intake-title" class="h2 serif">这一瓶的成分表</h2>
       </div>
 
       <div class="tools">
+        <span class="paste-tag mono" aria-hidden="true">01 / Paste</span>
         <button type="button" class="tool" :disabled="recognizing || loading" @click="$emit('paste')">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <rect x="8" y="4" width="11" height="15" rx="2" />
@@ -84,7 +85,8 @@ function sampleTitle(name) {
       </div>
     </div>
 
-    <div class="product-row">
+    <div class="body">
+      <div class="product-row">
       <label class="product-label" for="product-name">产品名 <em>可选</em></label>
       <input
         id="product-name"
@@ -207,33 +209,48 @@ function sampleTitle(name) {
         </button>
       </div>
     </div>
+    </div>
   </section>
 </template>
 
 <style scoped>
-.intake { padding: 24px 24px 20px; }
+.intake { padding: 0; overflow: hidden; }
 
+/* 顶栏：像仪器的面板条，不是普通卡片头 */
 .head {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 14px;
+  padding: 15px 20px 13px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(251, 248, 240, .94), rgba(255, 253, 247, 0));
 }
 
-.head-copy { display: flex; flex-direction: column; gap: 4px; }
+.head-copy { display: flex; flex-direction: column; gap: 3px; }
 
 .tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.paste-tag {
+  margin-right: 6px;
+  font-size: 9.5px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+/* 卡片内芯统一内距 */
+.body { padding: 16px 20px 20px; }
 
 .tool {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 6px 11px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line2);
   border-radius: 9px;
-  background: #FBF9F4;
+  background: var(--card);
   color: var(--ink2);
   font-size: 12.5px;
   transition: all .16s;
@@ -305,11 +322,27 @@ function sampleTitle(name) {
 .product-input:disabled { background: #FAF8F2; color: var(--ink2); cursor: progress; }
 
 .editor {
-  border: 1px solid var(--line);
+  position: relative;
+  border: 1px solid var(--line2);
   border-radius: 12px;
-  background: #FCFBF7;
+  background: #FCFAF3;
   transition: border-color .18s, box-shadow .18s;
 }
+
+/* 四角校准角：像一台仪器，不是一张便签 */
+.editor::before,
+.editor::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  pointer-events: none;
+  border-color: var(--brass-line);
+  border-style: solid;
+}
+
+.editor::before { top: 7px; left: 7px; border-width: 1px 0 0 1px; }
+.editor::after { bottom: 7px; right: 7px; border-width: 0 1px 1px 0; }
 
 .editor:focus-within {
   border-color: var(--accent);
@@ -319,13 +352,13 @@ function sampleTitle(name) {
 .ta {
   display: block;
   width: 100%;
-  min-height: 178px;
-  padding: 14px 16px 6px;
+  min-height: 168px;
+  padding: 15px 17px 6px;
   border: none;
   border-radius: 12px 12px 0 0;
   background: transparent;
   color: var(--ink);
-  font-size: 14px;
+  font-size: 14.5px;
   line-height: 1.95;
   resize: vertical;
   outline: none;
@@ -370,15 +403,16 @@ function sampleTitle(name) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: #F3F0E8;
+  padding: 1px 7px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--paper-2);
   color: var(--ink2);
   font-size: 11.5px;
   line-height: 1.8;
 }
 
-.mini.more { color: var(--accent-ink); background: var(--accent-soft); font-weight: 600; }
+.mini.more { color: var(--accent-ink); background: var(--accent-soft); border-color: var(--accent-line); font-weight: 600; }
 
 .issue {
   display: flex;
@@ -466,9 +500,9 @@ function sampleTitle(name) {
 .photo-copy b.danger { color: var(--danger); }
 
 .samples {
-  margin-top: 18px;
+  margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px dashed var(--line);
+  border-top: 1px solid var(--line);
 }
 
 .samples-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -478,7 +512,7 @@ function sampleTitle(name) {
 .sample-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
 .sample {
@@ -488,15 +522,15 @@ function sampleTitle(name) {
   gap: 3px;
   padding: 12px 12px 13px;
   border: 1px solid var(--line);
-  border-radius: 11px;
-  background: #FCFBF7;
+  border-radius: 10px;
+  background: var(--paper-2);
   text-align: left;
   transition: border-color .18s, transform .16s, box-shadow .18s, background .18s;
 }
 
 .sample:hover {
-  border-color: var(--accent-line);
-  background: #fff;
+  border-color: var(--brass-line);
+  background: var(--card);
   transform: translateY(-2px);
   box-shadow: var(--shadow-sm);
 }
@@ -541,10 +575,12 @@ function sampleTitle(name) {
 .sample:focus-visible .sample-go { opacity: 1; transform: translateX(2px); }
 
 @media (max-width: 720px) {
-  .intake { padding: 18px 16px 16px; }
+  .head { padding: 13px 16px 11px; }
+  .body { padding: 14px 16px 16px; }
 
   /* 触屏上把工具按钮撑到接近 40px 高，别让人点两次 */
   .tool { padding: 8px 12px; font-size: 13px; }
+  .paste-tag { display: none; }
   .sample-grid { grid-template-columns: 1fr; }
   .sample-hint { -webkit-line-clamp: 3; }
   .sample-go { opacity: 1; transform: none; }

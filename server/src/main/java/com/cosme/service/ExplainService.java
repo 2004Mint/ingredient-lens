@@ -81,13 +81,40 @@ public class ExplainService {
 
     /** A：整份报告的结论解释。 */
     public SseEmitter reportStream(Map<String, Object> report, Map<String, Object> profile) {
+        // 没有结论就没有可解释的东西：别把空事实喂给模型，让它对着空气发挥
+        if (report == null || report.isEmpty() || !(report.get("verdict") instanceof Map)) {
+            return noticeStream("没有收到可解释的报告内容，刷新页面后再试一次。", "缺少报告内容");
+        }
         return start(buildReportFacts(report, profile), fallbackReport(report), REPORT_SYSTEM, "report");
     }
 
     /** B：单个成分的解释，点开详情才请求。 */
     public SseEmitter ingredientStream(Map<String, Object> payload) {
-        Map<String, Object> facts = buildIngredientFacts(payload);
-        return start(facts, fallbackIngredient(payload), INGREDIENT_SYSTEM, "ingredient");
+        Map<String, Object> safe = payload == null ? Collections.emptyMap() : payload;
+        if (str(safe.get("name")).isEmpty()) {
+            return noticeStream("没有收到成分名，这段说明没法生成。", "缺少成分名");
+        }
+        Map<String, Object> facts = buildIngredientFacts(safe);
+        return start(facts, fallbackIngredient(safe), INGREDIENT_SYSTEM, "ingredient");
+    }
+
+    /** 输入不完整时直接给一句说明，不调用模型，也不假装生成过。 */
+    private SseEmitter noticeStream(String text, String reason) {
+        SseEmitter emitter = new SseEmitter(15_000L);
+        AtomicBoolean closed = new AtomicBoolean(false);
+        pool.submit(() -> {
+            try {
+                sendReplace(emitter, closed, text, "template", reason);
+                done(emitter, closed, "template", reason);
+            } finally {
+                try {
+                    emitter.complete();
+                } catch (Exception ignored) {
+                    // 客户端已断开
+                }
+            }
+        });
+        return emitter;
     }
 
     /** 模型不可用或输出没过闸门时的本地解释：只用已有字段拼装，不新增任何事实。 */
@@ -103,15 +130,26 @@ public class ExplainService {
         if (!role.isEmpty()) sb.append("在这瓶配方里属于").append(role).append("成分");
         if (!tier.isEmpty()) sb.append("，位置在").append(tier);
         sb.append("。");
-        if (!function.isEmpty()) sb.append(function).append("。");
-        if (!note.isEmpty()) sb.append(note).append("。");
+        appendSentence(sb, function);
+        appendSentence(sb, note);
         return sb.toString();
+    }
+
+    /** 拼句子：原文已经有句末标点就不再补，避免出现「。。」 */
+    private static void appendSentence(StringBuilder sb, String text) {
+        String t = text == null ? "" : text.trim();
+        if (t.isEmpty()) return;
+        sb.append(t);
+        char last = t.charAt(t.length() - 1);
+        if (last != '。' && last != '！' && last != '？' && last != '；' && last != '…') sb.append("。");
     }
 
     // ---------------------------------------------------------------- 流式主体
 
     private SseEmitter start(Map<String, Object> facts, String fallback, String system, String kind) {
-        SseEmitter emitter = new SseEmitter(90_000L);
+        // 超时要盖得住「流式 45s + 断流后非流式重试 60s」，否则重试还没回来，
+        // 容器先把连接关了，用户只能看到半句话。150s 留一次完整重试的余量。
+        SseEmitter emitter = new SseEmitter(150_000L);
         AtomicBoolean closed = new AtomicBoolean(false);
         emitter.onCompletion(() -> closed.set(true));
         emitter.onTimeout(() -> {
@@ -165,17 +203,18 @@ public class ExplainService {
                         upstreamError = e.getMessage();
                     }
                     String retried = full == null ? "" : full.trim();
-                    if (!retried.isEmpty() && endsWithTerminal(retried) && guard(retried) == null) {
+                    String settled = retried.isEmpty() || !endsWithTerminal(retried) ? null : settle(retried);
+                    if (settled != null) {
                         send(emitter, closed, step("retry", "已重新生成完整解释", "done"));
-                        sendReplace(emitter, closed, retried, "llm", "上游断流后重试成功");
-                        done(emitter, closed, "llm", "上游断流后重试成功");
+                        sendReplace(emitter, closed, settled, "llm", "重新生成了一次完整解释");
+                        done(emitter, closed, "llm", "重新生成了一次完整解释");
                         return;
                     }
                     incomplete = true;
                 }
 
                 if (text.isEmpty() || incomplete) {
-                    String reason = upstreamError == null ? "上游输出不完整" : shorten(upstreamError);
+                    String reason = upstreamError == null ? "这次回答没写完" : shorten(upstreamError);
                     send(emitter, closed, step("guard", "已回退本地解释", "done"));
                     sendReplace(emitter, closed, fallback, "template", reason);
                     done(emitter, closed, "template", reason);
@@ -184,10 +223,18 @@ public class ExplainService {
 
                 String violation = guard(text);
                 if (violation != null) {
+                    // 计数类数字先改写成中文；带百分号/单位的改不了，直接回退，别让用户看到越界文本
+                    String rewritten = "出现了数字或百分比".equals(violation) ? salvage(text) : null;
+                    if (rewritten != null) {
+                        send(emitter, closed, step("guard", "解释里的数字已改写为中文", "done"));
+                        sendReplace(emitter, closed, rewritten, "llm", "数字已改写为中文");
+                        done(emitter, closed, "llm", "数字已改写为中文");
+                        return;
+                    }
                     // 已经把不合规的文字推给前端了，所以整段替换，而不是假装没发生
-                    send(emitter, closed, step("guard", "输出闸门拦截：" + violation, "done"));
-                    sendReplace(emitter, closed, fallback, "template", violation);
-                    done(emitter, closed, "template", violation);
+                    send(emitter, closed, step("guard", friendly(violation) + "，已改用规则说明", "done"));
+                    sendReplace(emitter, closed, fallback, "template", friendly(violation));
+                    done(emitter, closed, "template", friendly(violation));
                     return;
                 }
 
@@ -195,7 +242,7 @@ public class ExplainService {
                 done(emitter, closed, "llm", null);
             } catch (Exception e) {
                 System.err.println("[解释] 流式失败：" + e);
-                streamFallback(emitter, closed, fallback, "template", "生成失败");
+                streamFallback(emitter, closed, fallback, "template", "这次没能生成");
             } finally {
                 try {
                     emitter.complete();
@@ -243,6 +290,9 @@ public class ExplainService {
 
         StreamResult result = new StreamResult();
         Exception last = null;
+        // 已经推给浏览器的字收不回来。此时再换下一个地址重试，用户会看到
+        // 前半段 + 后半段拼在一起的两份内容，所以只能失败，交给上层整段替换。
+        boolean emitted = false;
         for (String url : candidateUrls(cfg.baseUrl)) {
             HttpURLConnection conn = null;
             try {
@@ -286,13 +336,17 @@ public class ExplainService {
                             // 有些兼容实现只在 message.content 里给整段
                             delta = choice.path("message").path("content").asText("");
                         }
-                        if (!delta.isEmpty()) onDelta.accept(delta);
+                        if (!delta.isEmpty()) {
+                            onDelta.accept(delta);
+                            emitted = true;
+                        }
                         String finish = choice.path("finish_reason").asText("");
                         if (!finish.isEmpty()) result.finishReason = finish;
                     }
                 }
                 return result;
             } catch (Exception e) {
+                if (emitted) throw e;
                 last = e;
             } finally {
                 if (conn != null) conn.disconnect();
@@ -395,15 +449,16 @@ public class ExplainService {
 
     // ---------------------------------------------------------------- 事实与闸门
 
-    private Map<String, Object> buildReportFacts(Map<String, Object> report, Map<String, Object> profile) {
+    Map<String, Object> buildReportFacts(Map<String, Object> report, Map<String, Object> profile) {
         Map<String, Object> facts = new LinkedHashMap<>();
         Map<?, ?> verdict = asMap(report.get("verdict"));
 
         facts.put("结论等级", levelText(str(verdict.get("level"))));
-        facts.put("结论标题", str(verdict.get("headline")));
-        facts.put("成分总数", report.get("total"));
-        facts.put("已识别", report.get("matched"));
-        facts.put("未识别", report.get("unknownCount"));
+        facts.put("结论标题", neutralize(str(verdict.get("headline"))));
+        // 事实里一律不出现阿拉伯数字：模型最容易照抄的就是这几个计数，抄了就过不了闸门
+        facts.put("成分总数", cn(intOf(report.get("total"))));
+        facts.put("已识别", cn(intOf(report.get("matched"))));
+        facts.put("未识别", cn(intOf(report.get("unknownCount"))));
         facts.put("用户档案", profileText(profile));
 
         List<Map<String, Object>> flags = new ArrayList<>();
@@ -413,7 +468,7 @@ public class ExplainService {
             row.put("类型", str(f.get("type")));
             row.put("等级", str(f.get("level")));
             row.put("成分", f.get("ingredients"));
-            row.put("说明", shorten(str(f.get("message"))));
+            row.put("说明", neutralize(shorten(str(f.get("message")))));
             flags.add(row);
             if (flags.size() >= 8) break;
         }
@@ -425,7 +480,7 @@ public class ExplainService {
             Map<?, ?> a = asMap(item);
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("名称", str(a.get("name")));
-            row.put("排位", a.get("index"));
+            row.put("排位", "第" + cn(intOf(a.get("index")) + 1) + "位");
             row.put("梯队", tierText(str(a.get("tier"))));
             row.put("分类", str(a.get("cat")));
             actives.add(row);
@@ -437,21 +492,26 @@ public class ExplainService {
         return facts;
     }
 
-    private Map<String, Object> buildIngredientFacts(Map<String, Object> payload) {
+    Map<String, Object> buildIngredientFacts(Map<String, Object> payload) {
         Map<String, Object> facts = new LinkedHashMap<>();
         facts.put("成分", str(payload.get("name")));
         facts.put("角色", str(payload.get("role")));
         facts.put("分类", str(payload.get("cat")));
-        facts.put("排位", payload.get("index"));
+        // 只有真的知道排位时才给排位。缺省时曾经按 index=0 算成「第一位」，
+        // 模型就会理直气壮地说「位居首位」——这是凭空造依据，比不说更糟。
+        Object index = payload.get("index");
+        if (index instanceof Number && ((Number) index).intValue() >= 0) {
+            facts.put("排位", "第" + cn(((Number) index).intValue() + 1) + "位");
+        }
         facts.put("梯队", tierText(str(payload.get("tier"))));
-        facts.put("致痘性", payload.get("comedo"));
+        facts.put("致痘性", comedoText(payload.get("comedo")));
         facts.put("刺激性", riskText(str(payload.get("irrit"))));
         facts.put("孕期", riskText(str(payload.get("preg"))));
         facts.put("敏感肌", riskText(str(payload.get("sensitive"))));
-        facts.put("法规限量", str(payload.get("limit")));
-        facts.put("使用提示", str(payload.get("note")));
-        facts.put("一句话作用", str(payload.get("function")));
-        facts.put("报告里的评价", str(payload.get("comment")));
+        facts.put("法规限量", limitText(str(payload.get("limit"))));
+        facts.put("使用提示", neutralize(str(payload.get("note"))));
+        facts.put("一句话作用", neutralize(str(payload.get("function"))));
+        facts.put("报告里的评价", neutralize(str(payload.get("comment"))));
         facts.put("用户档案", profileText(asMap(payload.get("profile"))));
         // 空值去掉，避免模型把「null」当成事实复述
         facts.entrySet().removeIf(e -> e.getValue() == null
@@ -459,15 +519,154 @@ public class ExplainService {
         return facts;
     }
 
-    private String guard(String text) {
+    /** 输出闸门：返回 null 表示放行，否则返回拦截原因。包内可见，便于单测直接调用。 */
+    static String guard(String text) {
         if (text.isEmpty()) return "模型没有返回内容";
         if (text.length() < 20) return "内容过短";
         if (text.length() > 520) return "内容过长";
-        if (DIGITS.matcher(text).find()) return "出现了数字或百分比";
+        // 百分号本身就是浓度声明，先拦，别被下面的「成分名豁免」放过
+        if (text.contains("%") || text.contains("％")) return "出现了数字或百分比";
+        // 成分名里的数字不是浓度：1,2-戊二醇、二苯酮-3、聚山梨醇酯-20 必须能说出口
+        String withoutNames = NAME_DIGITS.matcher(text).replaceAll("");
+        // 维生素B5、SPF50 这类「字母 + 数字」是名称/标示，和成分名同等待遇；
+        // 不豁免的话，成分库里泛醇的作用说明会被改写成「维生素B五」再喂给模型。
+        withoutNames = CODE_DIGITS.matcher(withoutNames).replaceAll("");
+        if (DIGITS.matcher(withoutNames).find()) return "出现了数字或百分比";
         for (String word : BANNED) {
             if (text.contains(word)) return "出现了医疗用语「" + word + "」";
         }
         return null;
+    }
+
+    /** 成分名里的数字：数字串紧跟连字符（1,2- 戊二醇），或连字符后接数字（二苯酮-3） */
+    private static final Pattern NAME_DIGITS = Pattern.compile(
+            "[0-9０-９]+(?:[，,][0-9０-９]+)*-|[-－][0-9０-９]+");
+
+    /** 带字母的代号：维生素B5、B3、SPF50、C10。它们是名称的一部分，不是浓度。 */
+    private static final Pattern CODE_DIGITS = Pattern.compile("[A-Za-z][0-9]{1,2}");
+
+    /**
+     * 闸门只因为数字没过时，先试着把数字改写成中文再说。
+     *
+     * <p>为什么需要这一步：事实里本来就有「成分总数」「第几位」这类计数，模型很自然会把它们抄进解释，
+     * 于是「喂数字、禁数字」自己把自己卡住。计数改写成中文（「第 5 位」→「第五位」）不丢掉信息，
+     * 也不会变成浓度声明；但一旦带百分号或剂量单位（2.0%、0.5 克），说明它在说浓度，一律不改写，直接回退模板。</p>
+     */
+    static String salvage(String text) {
+        if (text == null || text.isEmpty()) return null;
+        if (MEASURE.matcher(text).find()) return null;
+        String rewritten = neutralize(text);
+        if (rewritten.equals(text)) return null;
+        return guard(rewritten) == null ? rewritten : null;
+    }
+
+    /** 能过闸门就原样用，过不了就试着改写数字；两条都不行返回 null，交给模板兜底 */
+    static String settle(String text) {
+        if (text == null || text.isEmpty()) return null;
+        if (guard(text) == null) return text;
+        return salvage(text);
+    }
+
+    /** 数字后面直接跟这些单位，说明是剂量或浓度，不能靠改写成文字蒙混过关 */
+    private static final Pattern MEASURE = Pattern.compile(
+            "[0-9０-９]\\s*(?:%|％|mg|g|ml|毫升|毫克|微克|克)");
+
+    /** 把自由文本里的计数改成中文数字；小数保持原样（小数意味着精度，不能改） */
+    static String neutralize(String text) {
+        if (text == null || text.isEmpty()) return text;
+        StringBuilder ascii = new StringBuilder(text.length());
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            ascii.append(c >= '０' && c <= '９' ? (char) ('0' + (c - '０')) : c);
+        }
+        String s = ascii.toString();
+        // 序号：「第 10 位」连空格一起去掉，否则会读成「第 十 位」。
+        // 这里只替换「第」后面的数字，别把「第」本身再写一遍（会变成「第第十位」）。
+        s = Pattern.compile("(?<=第)\\s*([0-9]{1,3})\\s*(?![0-9.．])")
+                .matcher(s)
+                .replaceAll(hit -> cn(numOf(hit.group(1))));
+        // 行首或空格后的计数：「2 个成分」→「两个成分」。句子以数字开头时（模型偶尔会这样写），
+        // 上面那条「汉字在前」的规则接不住，会留下「十二 个成分」这种带空格的断句。
+        s = Pattern.compile("(?<![0-9A-Za-z.．])[ \\t]*([0-9]{1,3})[ \\t]*(?=[个种次条瓶份处片支款])")
+                .matcher(s)
+                .replaceAll(hit -> cn(numOf(hit.group(1))));
+        // 中文句子里的计数：「共 12 个」→「共十二个」，把两侧空格一并收掉；
+        // 数字紧邻连字符、逗号、小数点、斜杠、百分号时一律不动——那是成分名或浓度。
+        // 紧跟在字母后面的数字同样不动：那是维生素B5、SPF50 这类代号，改了就成了错字。
+        s = Pattern.compile("(?<=[\\u4e00-\\u9fa5，。、；：！？）】])\\s*([0-9]{1,3})\\s*(?![0-9.．,，\\-－/%％])")
+                .matcher(s)
+                .replaceAll(hit -> cn(numOf(hit.group(1))));
+        // 剩下的（英文/符号上下文里的）只换数字，不动空格；同样跳过成分名与浓度写法
+        java.util.regex.Matcher m = Pattern.compile(
+                "(?<![A-Za-z\\-－,，.．/0-9])([0-9]{1,3})(?![0-9.．,，\\-－/%％])").matcher(s);
+        StringBuilder out = new StringBuilder();
+        while (m.find()) {
+            m.appendReplacement(out, cn(numOf(m.group(1))));
+        }
+        m.appendTail(out);
+        // 「2 个成分」应说成「两个成分」；「十二个」「二百个」保持不变
+        return LIANG_TWO.matcher(out.toString()).replaceAll("两");
+    }
+
+    /** 单独使用的「二」在量词前应写成「两」：两个成分 / 两次；但十二个、第二款不动 */
+    private static final Pattern LIANG_TWO = Pattern.compile(
+            "(?<![十百千万亿两第0-9])二(?=[个种次条瓶份处片支款])");
+
+    private static int numOf(String digits) {
+        try {
+            return Integer.parseInt(digits);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    /** 0–999 的中文写法：事实里不出现阿拉伯数字，模型照抄也不会踩闸门 */
+    static String cn(int n) {
+        String[] d = {"零", "一", "二", "三", "四", "五", "六", "七", "八", "九"};
+        if (n < 0 || n > 999) return String.valueOf(n);
+        if (n < 10) return d[n];
+        if (n < 20) return n == 10 ? "十" : "十" + d[n % 10];
+        if (n < 100) return d[n / 10] + "十" + (n % 10 == 0 ? "" : d[n % 10]);
+        int rest = n % 100;
+        String head = d[n / 100] + "百";
+        if (rest == 0) return head;
+        if (rest < 10) return head + "零" + d[rest];
+        return head + cn(rest);
+    }
+
+    private static int intOf(Object value) {
+        if (value instanceof Number) return ((Number) value).intValue();
+        try {
+            return Integer.parseInt(String.valueOf(value).trim());
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /** 致痘性 0–5 只说等级：说了数字就等于在暗示精确程度；不知道就干脆不说 */
+    private static String comedoText(Object value) {
+        if (!(value instanceof Number)) return "";
+        int v = ((Number) value).intValue();
+        if (v <= 0) return "低";
+        if (v <= 2) return "较低";
+        if (v == 3) return "中等";
+        if (v == 4) return "较高";
+        return "高";
+    }
+
+    /** 限量原文带数字时只给「有没有限制」，不把数值喂给模型，避免它照抄 */
+    private static String limitText(String limit) {
+        if (limit == null || limit.trim().isEmpty()) return "";
+        return limit.matches("(?s).*[0-9０-９].*") ? "有明确的法规限量要求" : limit;
+    }
+
+    /** 给用户看的拦截原因：不出现「闸门」「越界」这类内部说法 */
+    private static String friendly(String violation) {
+        if (violation == null) return "";
+        if (violation.startsWith("出现了数字")) return "解释里出现了具体数字";
+        if (violation.startsWith("出现了医疗用语")) return "解释越过了医疗边界";
+        if (violation.equals("内容过长") || violation.equals("内容过短")) return "解释长度不合适";
+        return violation;
     }
 
     private String fallbackReport(Map<String, Object> report) {
@@ -507,7 +706,8 @@ public class ExplainService {
     }
 
     /** 句子有没有写完：上游断流最常见的表现就是停在一句话中间。 */
-    private boolean endsWithTerminal(String text) {
+    /** 判断模型输出是否以句末标点收尾：用来识别「上游提前断流」。包内可见，便于单测。 */
+    static boolean endsWithTerminal(String text) {
         if (text == null || text.isEmpty()) return false;
         char c = text.charAt(text.length() - 1);
         return c == '。' || c == '！' || c == '？' || c == '…'

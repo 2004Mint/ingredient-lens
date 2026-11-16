@@ -16,6 +16,45 @@ const context = computed(() => props.detail.context || {})
 const aliases = computed(() => (item.value.aliases || []).filter(Boolean))
 const researched = computed(() => !!(item.value.researched || context.value.ai))
 
+/* 证据字段：AI 收录时库里有依据原句、模型自评置信度与时间，这里只做展示 */
+const confidence = computed(() => {
+  const v = item.value.confidence
+  return typeof v === 'number' && isFinite(v) ? Math.round(v * 100) : null
+})
+
+const basis = computed(() => String(item.value.basis || '').trim())
+
+const sourceLabel = computed(() => {
+  const from = String(item.value.source || '')
+  if (from === 'ai') return 'AI 研究收录'
+  if (from === 'manual') return '人工整理'
+  return ''
+})
+
+const reviewLabel = computed(() => {
+  const st = String(item.value.reviewStatus || '')
+  if (st === 'pending') return '待人工复核'
+  if (st === 'approved') return '已人工复核'
+  return ''
+})
+
+const researchedDate = computed(() => {
+  const at = String(item.value.researchedAt || '')
+  if (!at) return ''
+  const d = new Date(at)
+  if (Number.isNaN(d.getTime())) return ''
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+})
+
+const evidenceChips = computed(() => {
+  const out = []
+  if (sourceLabel.value) out.push(sourceLabel.value)
+  if (confidence.value != null) out.push(`模型自评置信度 ${confidence.value}%`)
+  if (reviewLabel.value) out.push(reviewLabel.value)
+  return out
+})
+
 const description = computed(() => {
   const deep = String(item.value.description || '').trim()
   if (deep) return deep
@@ -135,6 +174,9 @@ onBeforeUnmount(() => {
             <span v-if="item.cat" class="id-chip">{{ item.cat }}</span>
             <span v-if="researched" class="id-ai">AI 深度研究</span>
           </div>
+          <div v-if="evidenceChips.length" class="id-evidence">
+            <span v-for="chip in evidenceChips" :key="chip" class="id-evidence-chip">{{ chip }}</span>
+          </div>
         </header>
 
         <StreamText
@@ -174,6 +216,23 @@ onBeforeUnmount(() => {
         </section>
 
         <p v-if="item.note" class="id-note">{{ item.note }}</p>
+
+        <section v-if="basis" class="id-section id-basis">
+          <h3>依据</h3>
+          <p class="id-basis-text">{{ basis }}</p>
+          <div
+            v-if="confidence != null"
+            class="id-meter"
+            role="img"
+            :aria-label="`模型自评置信度 ${confidence}%`"
+          >
+            <i :style="{ width: confidence + '%' }"></i>
+          </div>
+          <p v-if="item.model || researchedDate" class="id-basis-meta">
+            <span v-if="item.model">模型 {{ item.model }}</span>
+            <span v-if="researchedDate">研究于 {{ researchedDate }}</span>
+          </p>
+        </section>
 
         <footer class="id-foot">
           <p>只读标签与成分库信息，不评价商品优劣，也不构成医疗或用药建议。{{ researched ? 'AI 生成的描述仍需人工复核。' : 'AI 解释仅作辅助，事实以规则与成分库为准。' }}</p>
@@ -235,6 +294,16 @@ onBeforeUnmount(() => {
 .id-chip { padding: 2px 7px; border: 1px solid #E8E1D4; border-radius: 4px; background: #fff; color: var(--ink2); font-size: 10px; }
 .id-ai { padding: 2px 7px; border-radius: 4px; background: #EEF3F8; color: #3C6788; font-size: 10px; }
 
+.id-evidence { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+.id-evidence-chip {
+  padding: 2px 7px;
+  border: 1px dashed #DCD3C2;
+  border-radius: 3px;
+  color: var(--ink3);
+  font-size: 10px;
+  line-height: 1.7;
+}
+
 .id-desc { margin: 16px 0 0; color: var(--ink2); font-size: 13px; line-height: 1.9; white-space: pre-wrap; }
 .id-oneline { margin: 7px 0 0; color: var(--ink3); font-size: 11.5px; line-height: 1.75; }
 
@@ -256,6 +325,21 @@ onBeforeUnmount(() => {
 
 .id-aliases { margin: 0; color: var(--ink2); font-size: 11.5px; line-height: 1.8; }
 .id-note { margin: 16px 0 0; padding: 10px 12px; border-left: 2px solid #D8CFBE; background: #F8F5EC; color: var(--ink2); font-size: 11.5px; line-height: 1.8; }
+
+/* 依据：AI 收录留下的原句 + 自评置信度，位置像脚注，方便核对 */
+.id-basis {
+  margin-left: -10px;
+  margin-right: -10px;
+  padding: 13px 10px 12px;
+  border-top: 0;
+  border-radius: 8px;
+  background: #F8F5EC;
+}
+.id-basis h3 { margin-bottom: 7px; }
+.id-basis-text { margin: 0; color: var(--ink2); font-size: 12px; line-height: 1.85; white-space: pre-wrap; }
+.id-meter { position: relative; height: 3px; margin-top: 10px; border-radius: 2px; background: #E6DFD2; overflow: hidden; }
+.id-meter i { position: absolute; top: 0; left: 0; bottom: 0; display: block; border-radius: 2px; background: #8C7A55; }
+.id-basis-meta { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 0; color: var(--ink3); font-size: 10px; line-height: 1.7; }
 
 .id-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-top: 22px; }
 .id-foot p { margin: 0; max-width: 390px; color: var(--ink3); font-size: 10px; line-height: 1.75; }

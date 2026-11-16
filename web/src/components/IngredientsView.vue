@@ -184,8 +184,9 @@ onMounted(load)
     </section>
 
     <div v-else class="grid">
-      <article v-for="item in filtered" :key="item.name" class="ing card">
+      <article v-for="(item, i) in filtered" :key="item.name" class="ing card">
         <header class="ing-top">
+          <span class="sn mono">{{ String(i + 1).padStart(2, '0') }}</span>
           <h2 class="ing-name">{{ item.name }}</h2>
           <span class="role">{{ item.role }}</span>
           <span class="cat">{{ item.cat }}</span>
@@ -290,7 +291,9 @@ onMounted(load)
 
 .ing-top { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
 
-.ing-name { font-size: 15px; font-weight: 600; }
+.sn { flex-shrink: 0; font-size: 9.5px; letter-spacing: .1em; color: var(--brass); }
+
+.ing-name { font-family: var(--serif); font-size: 16px; font-weight: 600; letter-spacing: .01em; }
 
 .role { padding: 1px 7px; border-radius: 4px; background: var(--accent-soft); color: var(--accent-ink); font-size: 10.5px; }
 

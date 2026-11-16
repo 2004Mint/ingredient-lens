@@ -18,11 +18,16 @@ defineEmits(['update:modelValue', 'submit', 'retry'])
 
 <template>
   <section class="card profile">
-    <div class="head">
-      <span class="eyebrow">第二步</span>
-      <h2 class="h2 serif">先告诉我你的情况</h2>
-      <p class="hint">同一瓶东西，油皮和干皮的结论可能完全相反。</p>
+    <div class="card-head">
+      <span class="t">你的档案</span>
+      <span class="n">02 / Profile</span>
     </div>
+
+    <div class="body">
+      <div class="head">
+        <h2 class="h2 serif">先告诉我你的情况</h2>
+        <p class="hint">同一瓶东西，油皮和干皮的结论可能完全相反。</p>
+      </div>
 
     <ProfileControls
       :model-value="modelValue"
@@ -86,17 +91,20 @@ defineEmits(['update:modelValue', 'submit', 'retry'])
         <button type="button" class="btn" @click="$emit('retry')">重试</button>
       </div>
     </div>
+    </div>
   </section>
 </template>
 
 <style scoped>
-.profile { padding: 24px; }
+.profile { padding: 0; overflow: hidden; }
+
+.body { padding: 16px 20px 20px; }
 
 .head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
 
 .head .hint { margin-top: 2px; }
 
-.cta-wrap { margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--line); }
+.cta-wrap { margin-top: 18px; padding-top: 16px; border-top: 1px dotted var(--line2); }
 
 .cta-note { font-size: 12px; color: var(--ink3); margin-bottom: 8px; }
 
@@ -109,14 +117,14 @@ defineEmits(['update:modelValue', 'submit', 'retry'])
   gap: 8px;
   width: 100%;
   padding: 14px 18px;
-  border-radius: 12px;
-  background: var(--ink);
-  color: #fff;
+  border-radius: 11px;
+  background: linear-gradient(180deg, #1C6352, var(--accent) 55%, #134C40);
+  color: #FFFDF7;
   font-size: 15px;
   font-weight: 600;
   letter-spacing: .04em;
-  box-shadow: 0 14px 26px -20px rgba(26, 23, 19, .9);
-  transition: background .18s, transform .12s, opacity .18s;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .16), 0 14px 26px -20px rgba(12, 54, 44, .95);
+  transition: filter .18s, transform .12s, opacity .18s;
 }
 
 .cta svg {
@@ -130,13 +138,13 @@ defineEmits(['update:modelValue', 'submit', 'retry'])
   transition: transform .18s;
 }
 
-.cta:hover:not(:disabled) { background: #2B2722; }
+.cta:hover:not(:disabled) { filter: brightness(1.06); }
 .cta:hover:not(:disabled) svg { transform: translateX(3px); }
 .cta:active:not(:disabled) { transform: scale(.995); }
 .cta:disabled { opacity: .38; cursor: not-allowed; }
 
 /* 加载中按钮保持实心：它现在是进度指示器，不该看起来像坏掉了 */
-.cta.loading:disabled { opacity: 1; cursor: progress; background: #2B2722; }
+.cta.loading:disabled { opacity: 1; cursor: progress; filter: brightness(1.06); }
 
 .privacy,
 .cta-empty {
@@ -232,6 +240,6 @@ defineEmits(['update:modelValue', 'submit', 'retry'])
 
   .error { padding: 11px 12px; border: 1px solid var(--danger-line); }
 
-  .profile { padding: 18px 16px; }
+  .body { padding: 14px 16px 16px; }
 }
 </style>

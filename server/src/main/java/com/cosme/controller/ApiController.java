@@ -85,6 +85,21 @@ public class ApiController {
             m.put("sensitive", n.path("sn").asText("safe"));
             m.put("limit", n.path("lm").asText(""));
             m.put("note", n.path("nt").asText(""));
+
+            // 证据字段：AI 收录的成分会留下依据原句、模型自评置信度与研究时间。
+            // 只做原样透出，前端只读展示；没有就整条不下发，避免界面出现空壳区块。
+            String basis = n.path("rv").asText("").trim();
+            if (!basis.isEmpty()) m.put("basis", basis);
+            if (n.hasNonNull("rc")) m.put("confidence", n.path("rc").asDouble());
+            String model = n.path("rm").asText("").trim();
+            if (!model.isEmpty()) m.put("model", model);
+            String researchedAt = n.path("ra").asText("").trim();
+            if (!researchedAt.isEmpty()) m.put("researchedAt", researchedAt);
+            String from = n.path("sr").asText("").trim();
+            if (!from.isEmpty()) m.put("source", from);
+            String reviewStatus = n.path("st").asText("").trim();
+            if (!reviewStatus.isEmpty()) m.put("reviewStatus", reviewStatus);
+
             items.add(m);
         }
 
@@ -143,19 +158,24 @@ public class ApiController {
 
             // 未收录 token 先进入持久化研究队列；worker 在后端异步研究，
             // 不再要求 AI 当场成功，也不会让失败/超限的 token 无声消失。
+            // body.research=false 只给自动化评测用：评测要可重复，不能每跑一次就往队列里塞数据。
+            boolean withResearch = !"false".equals(String.valueOf(body.get("research")));
             Object unresolvedValue = report.get("unresolved");
             if (!(unresolvedValue instanceof List)) unresolvedValue = report.get("unknown");
-            if (unresolvedValue instanceof List) {
+            if (withResearch && unresolvedValue instanceof List) {
                 List<String> queries = new ArrayList<>();
                 for (Object item : (List<?>) unresolvedValue) {
                     if (item != null && !item.toString().trim().isEmpty()) queries.add(item.toString().trim());
                 }
                 if (!queries.isEmpty()) {
                     ResearchTaskStore.EnqueueResult enqueued = researchTasks.enqueue(queries, text);
+                    Map<String, Integer> counts = researchTasks.counts();
                     report.put("researchEnabled", aiConfig.researchEnabled());
                     report.put("researchQueued", enqueued.queued);
                     report.put("researchRunning", enqueued.researching);
+                    report.put("researchReview", counts.get("review"));
                     report.put("researchFailed", enqueued.failed);
+                    report.put("researchFailedReason", researchTasks.failureReason(queries));
                     report.put("researchDone", enqueued.done);
                     report.put("researchTasks", enqueued.active);
                 }

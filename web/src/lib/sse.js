@@ -15,7 +15,7 @@ export async function streamJSON(url, body, { signal, onEvent } = {}) {
     })
   } catch (err) {
     if (err.name === 'AbortError') return
-    throw new Error('连不上本机后端（8082），请先启动 start-server.bat')
+    throw new Error('连不上本机后端，先启动 start-server.bat')
   }
 
   if (!res.ok) throw new Error(`解释服务返回 ${res.status}`)

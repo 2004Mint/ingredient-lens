@@ -25,6 +25,9 @@ const notice = ref('')
 
 let controller = null
 let hasDelta = false
+// 后端是否明确给了收尾事件（done / replace）。没有收尾就说明连接中途断了，
+// 页面不能停在一句话中间还装作没事——那半句话会被当成完整结论读。
+let settled = false
 
 function start() {
   if (streaming.value) return
@@ -33,6 +36,7 @@ function start() {
   source.value = ''
   notice.value = ''
   hasDelta = false
+  settled = false
   streaming.value = true
 
   controller = new AbortController()
@@ -42,6 +46,9 @@ function start() {
     })
     .finally(() => {
       streaming.value = false
+      if (!settled && !notice.value) {
+        notice.value = '连接中断，这段话没写完'
+      }
     })
 }
 
@@ -63,6 +70,7 @@ function handle(evt) {
   }
   if (evt.type === 'replace') {
     hasDelta = true
+    settled = true
     text.value = evt.text || props.fallback || ''
     if (evt.source) source.value = evt.source
     if (evt.source === 'llm') {
@@ -73,6 +81,7 @@ function handle(evt) {
     return
   }
   if (evt.type === 'done') {
+    settled = true
     source.value = evt.source || ''
     streaming.value = false
     if (!notice.value) {
@@ -86,6 +95,7 @@ function handle(evt) {
 }
 
 function stop() {
+  settled = true
   controller?.abort()
   controller = null
   streaming.value = false

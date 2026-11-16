@@ -9,6 +9,7 @@ import MethodView from './components/MethodView.vue'
 import NotFoundView from './components/NotFoundView.vue'
 import ProfilePanel from './components/ProfilePanel.vue'
 import ReportView from './components/ReportView.vue'
+import Ruler from './components/Ruler.vue'
 import { getJSON, postJSON } from './lib/http.js'
 import { ingredientTokens, inspectInput, profileLabel, splitByWhitespace } from './lib/text.js'
 import { buildDelta, buildReportText, reportView } from './lib/report.js'
@@ -95,6 +96,13 @@ const tagline = computed(() =>
     : '拍一下，看懂这瓶到底适不适合你'
 )
 
+/* 首页那把尺：三个位置点，演示「排位 = 含量」 */
+const demoMarks = [
+  { name: '甘油 2', pos: 2, tone: 'brass' },
+  { name: '烟酰胺 10', pos: 10, tone: 'amber' },
+  { name: '柠檬烯 13', pos: 13, tone: 'verm' }
+]
+
 /* ----------------------------- 工具 ----------------------------- */
 
 function prefersReducedMotion() {
@@ -170,7 +178,9 @@ let stepTimer = 0
 let researchTimer = 0
 let researchPolls = 0
 const researchPolling = ref(false)
-const RESEARCH_POLL_MAX = 20
+// 6 秒一轮、最多 6 分钟：研究一条要调模型，慢的时候确实会超过两分钟。
+// 再久也不该默默停掉——进度页上留了「立即重新检查」，用户可以自己催一次。
+const RESEARCH_POLL_MAX = 60
 
 function clearResearchPoll() {
   clearTimeout(researchTimer)
@@ -203,7 +213,7 @@ async function pollResearch({ manual = false } = {}) {
       resetShareLink()
       rememberReport(json, meta.value, true)
     }
-    if (json.researchEnabled && ((json.researchQueued || 0) + (json.researchRunning || 0) > 0)) {
+    if (json.researchEnabled && ((json.researchQueued || 0) + (json.researchRunning || 0) + (json.researchReview || 0) > 0)) {
       scheduleResearchPoll()
     } else {
       researchPolls = 0
@@ -294,7 +304,7 @@ async function analyze({ silent = false } = {}) {
       })
     }
 
-    if (json.researchEnabled && ((json.researchQueued || 0) + (json.researchRunning || 0) > 0)) {
+    if (json.researchEnabled && ((json.researchQueued || 0) + (json.researchRunning || 0) + (json.researchReview || 0) > 0)) {
       researchPolls = 0
       scheduleResearchPoll()
     }
@@ -1012,7 +1022,7 @@ onBeforeUnmount(() => {
       <div v-if="backendDown" class="notice no-print" role="alert">
         <div class="notice-copy">
           <b>没连上本机服务</b>
-          <span>分析需要后端在 8082 端口运行。启动 start-server.bat 后点重试。</span>
+          <span>分析需要后端服务在运行。启动 start-server.bat 后点重试。</span>
         </div>
         <button type="button" class="btn" @click="loadMeta">重试</button>
       </div>
@@ -1099,6 +1109,26 @@ onBeforeUnmount(() => {
           />
         </aside>
       </div>
+
+      <section class="concept" aria-labelledby="concept-title">
+        <div class="concept-in">
+          <div class="concept-copy">
+            <p class="eyebrow">The only rule</p>
+            <h2 id="concept-title" class="concept-title serif">位置，就是含量。</h2>
+            <p class="concept-text">
+              中国法规要求成分按加入量从高到低排列。排在第 11 位之后的，通常只剩千分之几 ——
+              这一条，比任何广告语都可信。成分镜做的，就是把这个顺序翻译成对你的结论。
+            </p>
+          </div>
+          <div class="concept-ruler">
+            <Ruler :total="14" :items="demoMarks" label="示例配方位置尺：甘油第 2 位、烟酰胺第 10 位、柠檬烯第 13 位" />
+            <div class="concept-foot">
+              <span>红点 = 与你的档案冲突</span>
+              <span class="mono">14 / 14 已识别</span>
+            </div>
+          </div>
+        </div>
+      </section>
     </template>
 
     <ReportView
@@ -1124,19 +1154,39 @@ onBeforeUnmount(() => {
 
     <template v-if="!isAdmin">
       <footer class="site-foot no-print">
-        <nav class="foot-links" aria-label="页脚导航">
-          <a href="#/method">解读方法</a>
-          <a href="#/ingredients">成分库</a>
-          <a href="#/history">历史报告</a>
-          <a href="#/about">关于与隐私</a>
-          <a href="#/admin">管理控制台</a>
-        </nav>
-        <p>本工具只做标签信息解读，不评价商品优劣，不构成医疗或用药建议。</p>
-        <p class="foot-meta">
-          成分镜 v{{ version.version || '1.0.0' }} · 规则库 {{ version.rulesVersion || '2026.10' }}
-          · 成分库 {{ version.librarySize || config.librarySize || 60 }} 条
-          · 数据更新 {{ version.libraryVersion || '2026.10' }}
-        </p>
+        <div class="foot-in">
+          <div class="foot-brand">
+            <span class="brand-mark small" aria-hidden="true">
+              <svg viewBox="0 0 32 32">
+                <circle cx="16" cy="16" r="13.2" />
+                <path d="M16 5.2c3.7 3.3 4.9 6.9 4.9 10.8s-1.2 7.5-4.9 10.8c-3.7-3.3-4.9-6.9-4.9-10.8S12.3 8.5 16 5.2Z" />
+              </svg>
+            </span>
+            <div>
+              <div class="foot-name serif">成分镜</div>
+              <div class="foot-tag">规则给结论，模型讲人话。</div>
+            </div>
+          </div>
+
+          <nav class="foot-links" aria-label="页脚导航">
+            <a href="#/method">解读方法</a>
+            <a href="#/ingredients">成分库</a>
+            <a href="#/history">历史报告</a>
+            <a href="#/about">关于与隐私</a>
+            <a href="#/admin">管理控制台</a>
+          </nav>
+
+          <p class="foot-note">
+            本工具只做标签信息解读，不评价商品优劣，<br />不构成医疗或用药建议。
+          </p>
+        </div>
+
+        <div class="foot-meta">
+          <span>成分镜 v{{ version.version || '1.0.0' }}</span>
+          <span>规则库 {{ version.rulesVersion || '2026.10' }}</span>
+          <span>成分库 {{ version.librarySize || config.librarySize || 60 }} 条</span>
+          <span>数据更新 {{ version.libraryVersion || '2026.10' }}</span>
+        </div>
       </footer>
 
       <div v-if="route === '' && !report" class="mobile-cta no-print">
@@ -1259,9 +1309,12 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .page {
-  max-width: 1040px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 30px 22px 72px;
+  padding: 24px 24px 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .page.is-admin {
@@ -1275,35 +1328,53 @@ onBeforeUnmount(() => {
 .site-head {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 20px;
   flex-wrap: wrap;
-  margin-bottom: 22px;
+  padding-bottom: 16px;
+  margin-bottom: 30px;
+  border-bottom: 1px solid var(--line);
+  position: relative;
+}
+
+.site-head::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brass-line) 16%, var(--accent-line) 64%, transparent);
+  opacity: .55;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   flex-shrink: 0;
   color: inherit;
   text-decoration: none;
 }
 
+/* 透镜标：铜圈 + 纸面 + 墨绿笔画，替代深色圆角方块 */
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   flex-shrink: 0;
-  border-radius: 13px;
-  background: linear-gradient(145deg, #2C7C69, var(--accent-ink));
-  color: #fff;
-  box-shadow: 0 10px 22px -16px rgba(20, 76, 64, .95);
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #FFFDF6, #F4EEDF 72%);
+  border: 1px solid var(--brass);
+  box-shadow: inset 0 0 0 2px var(--card), inset 0 0 0 3px rgba(156, 117, 52, .28), 0 1px 2px rgba(38, 30, 18, .12);
+  color: var(--accent-ink);
 }
 
+.brand-mark.small { width: 32px; height: 32px; }
+
 .brand-mark svg {
-  width: 25px;
-  height: 25px;
+  width: 23px;
+  height: 23px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.15;
@@ -1311,11 +1382,19 @@ onBeforeUnmount(() => {
   stroke-linejoin: round;
 }
 
+.brand-mark.small svg { width: 19px; height: 19px; }
+
 .brand-copy { display: flex; flex-direction: column; }
 
-.logo { font-size: 22px; font-weight: 700; line-height: 1.25; letter-spacing: .05em; }
+.logo {
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: .08em;
+}
 
-.tagline { font-size: 11.5px; line-height: 1.6; color: var(--ink3); letter-spacing: .02em; }
+.tagline { font-size: 11px; line-height: 1.6; color: var(--ink3); letter-spacing: .02em; }
 
 .site-nav {
   display: flex;
@@ -1331,43 +1410,52 @@ onBeforeUnmount(() => {
 .site-nav a {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   flex-shrink: 0;
-  padding: 6px 10px;
-  border-radius: 8px;
+  padding: 6px 9px;
+  border-radius: 6px;
   color: var(--ink2);
-  font-size: 12.5px;
+  font-size: 13px;
   text-decoration: none;
   white-space: nowrap;
-  transition: background .16s, color .16s;
+  transition: color .16s;
 }
 
-.site-nav a:hover { background: rgba(31, 107, 90, .06); color: var(--accent-ink); }
+.site-nav a:hover { color: var(--accent); }
 
-.site-nav a.on { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+.site-nav a.on {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--brass-lt);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 7px;
+}
 
 .nav-count {
-  padding: 1px 5px;
-  border-radius: 999px;
-  background: rgba(31, 107, 90, .14);
-  font-size: 9.5px;
-  line-height: 1.5;
-  font-weight: 600;
+  padding: 0 4px;
+  border: 1px solid var(--brass-line);
+  border-radius: 3px;
+  color: var(--brass);
+  font-family: var(--mono);
+  font-size: 9px;
+  line-height: 1.6;
 }
 
 .head-cta {
   flex-shrink: 0;
-  padding: 9px 16px;
+  padding: 8px 15px;
   border-radius: 9px;
-  background: var(--ink);
-  color: #fff;
+  background: linear-gradient(180deg, #1C6352, var(--accent) 55%, #134C40);
+  color: #FFFDF7;
   font-size: 12.5px;
   font-weight: 600;
-  letter-spacing: .02em;
-  transition: background .16s;
+  letter-spacing: .04em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .16), 0 8px 18px -14px rgba(12, 54, 44, .9);
+  transition: filter .16s;
 }
 
-.head-cta:hover { background: #2B2722; }
+.head-cta:hover { filter: brightness(1.06); }
 
 /* ----------------------------- 提示条 ----------------------------- */
 .notice {
@@ -1388,15 +1476,15 @@ onBeforeUnmount(() => {
 .notice-copy span { font-size: 12px; line-height: 1.7; color: #7C3A2E; }
 
 /* ----------------------------- 首屏 ----------------------------- */
-.hero { position: relative; max-width: 730px; padding: 2px 0 20px; }
+.hero { position: relative; max-width: 760px; padding: 6px 0 22px; }
 
 .hero-title {
   position: relative;
   z-index: 0;
-  margin: 8px 0 9px;
-  font-size: 38px;
+  margin: 10px 0 12px;
+  font-size: 42px;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.28;
   letter-spacing: -.025em;
 }
 
@@ -1408,66 +1496,183 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
+/* 黄铜下划线：比荧光笔色块更像印刷品 */
 .hero-title em::after {
   content: '';
   position: absolute;
-  left: -2px;
-  right: -2px;
-  bottom: 3px;
-  height: 9px;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  height: 8px;
   z-index: -1;
-  border-radius: 4px;
-  background: linear-gradient(90deg, rgba(31, 107, 90, .2), rgba(31, 107, 90, .04));
+  background: linear-gradient(90deg, rgba(201, 161, 92, .55), rgba(201, 161, 92, .1));
 }
 
-.hero-sub { max-width: 650px; font-size: 14px; line-height: 1.9; color: var(--ink2); }
+.hero-sub { max-width: 660px; font-size: 14.5px; line-height: 1.9; color: var(--ink2); }
 
+/* 三行机制说明：编号由 CSS 计数器给出，模板不用改 */
 .hero-points {
+  counter-reset: mech;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: 11px;
-  font-size: 11.5px;
-  color: var(--ink3);
+  align-items: baseline;
+  gap: 0;
+  max-width: 640px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--ink2);
 }
 
-.hero-points i { font-style: normal; opacity: .45; }
+.hero-points span {
+  flex: 1 1 0;
+  min-width: 150px;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 0 14px;
+}
+
+.hero-points span:first-child { padding-left: 0; }
+
+.hero-points span + span { border-left: 1px solid var(--line); }
+
+.hero-points span::before {
+  counter-increment: mech;
+  content: counter(mech, decimal-leading-zero);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: .14em;
+  color: var(--brass);
+  flex-shrink: 0;
+}
+
+.hero-points i { display: none; }
 
 /* ----------------------------- 布局 ----------------------------- */
 .intake-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(310px, .92fr);
-  gap: 16px;
+  grid-template-columns: minmax(0, 1.32fr) minmax(310px, .9fr);
+  gap: 20px;
   align-items: start;
 }
 
 .side { position: sticky; top: 20px; }
 
-/* ----------------------------- 页脚 ----------------------------- */
-.site-foot {
-  margin-top: 36px;
-  padding-top: 18px;
+/* ----------------------------- 位置即含量 ----------------------------- */
+.concept {
+  margin-top: 54px;
+  padding: 34px 0 38px;
   border-top: 1px solid var(--line);
-  text-align: center;
+  background: linear-gradient(180deg, rgba(251, 248, 240, .9), rgba(241, 236, 223, 0));
 }
+
+.concept-in {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: 48px;
+  align-items: center;
+}
+
+.concept-copy .eyebrow { margin-bottom: 8px; }
+
+.concept-title {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -.01em;
+}
+
+.concept-text {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.95;
+  color: var(--ink2);
+}
+
+.concept-ruler { min-width: 0; }
+
+.concept-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px dotted var(--line2);
+  font-size: 11px;
+  color: var(--ink3);
+}
+
+.concept-foot .mono { font-size: 9.5px; letter-spacing: .14em; }
+
+/* ----------------------------- 页脚：墨绿书挡 ----------------------------- */
+.site-foot {
+  margin: auto calc(50% - 50vw) 0;
+  border-top: 44px solid transparent;
+  background-clip: padding-box;
+  padding: 34px max(24px, calc(50vw - 536px)) 26px;
+  background-image: linear-gradient(180deg, #0F3D32, #0A2A23 68%, #08211C);
+  color: #E9E3D5;
+}
+
+.foot-in {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 40px;
+  align-items: center;
+}
+
+.foot-brand { display: flex; align-items: center; gap: 12px; }
+
+.foot .brand-mark {
+  background: transparent;
+  border-color: rgba(201, 161, 92, .55);
+  color: var(--brass-lt);
+  box-shadow: inset 0 0 0 2px #0A2A23, inset 0 0 0 3px rgba(201, 161, 92, .22);
+}
+
+.foot-name {
+  font-family: var(--serif);
+  font-size: 18px;
+  letter-spacing: .1em;
+  color: #F2EBD9;
+}
+
+.foot-tag { margin-top: 1px; font-size: 11px; color: #A69E88; }
 
 .foot-links {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
+  gap: 22px;
   flex-wrap: wrap;
-  margin-bottom: 10px;
+  padding-left: 24px;
+  border-left: 1px solid rgba(201, 161, 92, .22);
 }
 
-.foot-links a { color: var(--ink2); font-size: 11.5px; text-decoration: none; }
+.foot-links a { color: #C9C1AC; font-size: 12px; text-decoration: none; }
+.foot-links a:hover { color: #fff; }
 
-.foot-links a:hover { color: var(--accent); }
+.foot-note {
+  font-size: 10.5px;
+  line-height: 1.85;
+  color: #8B8470;
+  text-align: right;
+}
 
-.site-foot p { font-size: 11.5px; line-height: 1.9; color: var(--ink3); }
-
-.foot-meta { opacity: .78; }
+.foot-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin-top: 26px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(201, 161, 92, .18);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: .12em;
+  color: #6F6A59;
+  text-transform: uppercase;
+}
 
 /* ----------------------------- 页面状态与分享 ----------------------------- */
 .page-state {
@@ -1616,16 +1821,16 @@ onBeforeUnmount(() => {
 .toast-leave-to { opacity: 0; transform: translate(-50%, 8px); }
 
 @media (max-width: 979px) {
-  .page { padding: 20px 16px 108px; }
-  .page.has-report { padding-bottom: 56px; }
+  .page { padding: 16px 16px 0; }
+  .page.has-report { padding-bottom: 0; }
 
-  .site-head { margin-bottom: 16px; gap: 10px; }
+  .site-head { margin-bottom: 20px; gap: 10px; padding-bottom: 12px; }
 
   .brand { flex: 1; }
 
-  .brand-mark { width: 36px; height: 36px; border-radius: 11px; }
+  .brand-mark { width: 34px; height: 34px; }
 
-  .logo { font-size: 20px; }
+  .logo { font-size: 19px; }
 
   .tagline { display: none; }
 
@@ -1639,17 +1844,40 @@ onBeforeUnmount(() => {
     border-top: 1px solid var(--line);
   }
 
-  .hero { padding: 2px 0 20px; }
+  .hero { padding: 2px 0 18px; }
 
   .hero-title { font-size: 31px; margin: 8px 0 10px; }
 
   .hero-sub { font-size: 13.5px; line-height: 1.9; }
 
-  .hero-points { gap: 8px; margin-top: 10px; }
+  .hero-points { gap: 0; margin-top: 14px; padding-top: 10px; }
+
+  .hero-points span {
+    flex: 1 1 100%;
+    min-width: 0;
+    padding: 5px 0;
+    font-size: 11.5px;
+  }
+
+  .hero-points span + span { border-left: none; border-top: 1px dotted var(--line); }
 
   .intake-grid { grid-template-columns: 1fr; }
 
   .side { position: static; }
+
+  .concept { margin-top: 34px; padding: 26px 0 30px; }
+
+  .concept-in { grid-template-columns: 1fr; gap: 22px; }
+
+  .concept-title { font-size: 21px; }
+
+  .foot-in { grid-template-columns: 1fr; gap: 20px; }
+
+  .foot-links { padding-left: 0; border-left: none; gap: 16px; }
+
+  .foot-note { text-align: left; }
+
+  .site-foot { padding: 30px 16px 116px; margin-top: 36px; }
 
   .mobile-cta {
     display: block;
@@ -1681,11 +1909,12 @@ onBeforeUnmount(() => {
     width: 100%;
     padding: 13px;
     border-radius: 11px;
-    background: var(--ink);
-    color: #fff;
+    background: linear-gradient(180deg, #1C6352, var(--accent) 55%, #134C40);
+    color: #FFFDF7;
     font-size: 15px;
     font-weight: 600;
     letter-spacing: .04em;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .16), 0 10px 22px -18px rgba(12, 54, 44, .9);
     transition: opacity .16s;
   }
 
