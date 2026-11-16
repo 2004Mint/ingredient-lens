@@ -1,0 +1,249 @@
+{
+  "meta": {
+    "name": "成分镜 · 产品级评测集",
+    "version": "v1",
+    "createdAt": "2026-11-17",
+    "about": "评测的是产品行为，不是单元函数：给一段真实成分表，看识别、排位、判定、护栏与可复现性是否符合预期。期望值由人工核对真实输出后冻结，改了规则或库就要重跑。",
+    "howToRun": "node docs/eval/run-eval.mjs --base http://127.0.0.1:8083"
+  },
+  "cases": [
+    {
+      "id": "A01",
+      "title": "美白精华（常见品类，功效成分靠后）",
+      "tests": "最常见的一类输入：能不能把「烟酰胺排在后面」这件事说对",
+      "text": "水、甘油、丙二醇、丁二醇、1,2-戊二醇、透明质酸钠、泛醇、烟酰胺、苯氧乙醇、羟苯甲酯、香精、柠檬烯",
+      "expect": { "total": 12, "mustMatch": ["烟酰胺", "透明质酸钠", "柠檬烯"], "mustUnknown": [] }
+    },
+    {
+      "id": "A02",
+      "title": "修护面霜（油脂 + 神经酰胺）",
+      "tests": "基质为主的配方不应被说成功效型",
+      "text": "水、甘油、矿油、凡士林、角鲨烷、神经酰胺、鲸蜡硬脂醇、甘油硬脂酸酯、聚二甲基硅氧烷、苯氧乙醇、羟苯甲酯、香精",
+      "expect": { "total": 12, "mustMatch": ["矿油", "神经酰胺", "凡士林"], "mustUnknown": [] }
+    },
+    {
+      "id": "A03",
+      "title": "洁面（SLS + MIT + 香精）",
+      "tests": "高风险组合能不能被判定抓住",
+      "text": "水、月桂醇硫酸酯钠、椰油酰胺丙基甜菜碱、甘油、氯化钠、香精、甲基异噻唑啉酮、柠檬烯、乙二胺四乙酸二钠",
+      "expect": { "total": 9, "mustMatch": ["月桂醇硫酸酯钠", "甲基异噻唑啉酮", "香精"], "mustUnknown": [] }
+    },
+    {
+      "id": "A04",
+      "title": "防晒（物理防晒剂）",
+      "tests": "防晒剂能否归到防晒类别而不是当功效精华",
+      "text": "水、二氧化钛、氧化锌、环五聚二甲基硅氧烷、异丙基棕榈酸酯、云母、滑石粉、生育酚、苯氧乙醇、香精",
+      "expect": { "total": 10, "mustMatch": ["二氧化钛", "氧化锌", "滑石粉"], "mustUnknown": [] }
+    },
+    {
+      "id": "A05",
+      "title": "酸类精华（多种酸 + 中和剂）",
+      "tests": "酸类堆叠与 pH 调节剂同现时，判定是否仍以位置为依据",
+      "text": "水、羟基乙酸、乳酸、水杨酸、氢氧化钠、泛醇、尿囊素、苯氧乙醇",
+      "expect": { "total": 8, "mustMatch": ["羟基乙酸", "水杨酸", "氢氧化钠"], "mustUnknown": [] }
+    },
+    {
+      "id": "A06",
+      "title": "视黄醇晚霜（普通档案）",
+      "tests": "视黄醇类成分在普通档案下的提示口径",
+      "text": "水、角鲨烷、视黄醇、视黄醇棕榈酸酯、生育酚、聚二甲基硅氧烷、鲸蜡硬脂醇、苯氧乙醇、香精",
+      "expect": { "total": 9, "mustMatch": ["视黄醇", "视黄醇棕榈酸酯"], "mustUnknown": [] }
+    },
+    {
+      "id": "A07",
+      "title": "同一支视黄醇晚霜（孕期档案）",
+      "tests": "档案不同，同一份成分表结论必须不同",
+      "text": "水、角鲨烷、视黄醇、视黄醇棕榈酸酯、生育酚、聚二甲基硅氧烷、鲸蜡硬脂醇、苯氧乙醇、香精",
+      "profile": { "skin": "normal", "sensitive": false, "pregnant": true },
+      "expect": {
+        "total": 9,
+        "mustMatch": ["视黄醇"],
+        "mustUnknown": [],
+        "mustFlag": [{ "ingredient": "视黄醇", "level": "high" }]
+      }
+    },
+    {
+      "id": "A08",
+      "title": "同一支洁面（敏感肌档案）",
+      "tests": "敏感肌档案下的提示是否收紧",
+      "text": "水、月桂醇硫酸酯钠、椰油酰胺丙基甜菜碱、甘油、氯化钠、香精、甲基异噻唑啉酮、柠檬烯、乙二胺四乙酸二钠",
+      "profile": { "skin": "dry", "sensitive": true, "pregnant": false },
+      "expect": {
+        "total": 9,
+        "mustMatch": ["甲基异噻唑啉酮", "香精"],
+        "mustUnknown": [],
+        "mustFlag": [{ "ingredient": "香精" }]
+      }
+    },
+    {
+      "id": "A09",
+      "title": "纯英文 INCI",
+      "tests": "英文别名覆盖到哪一步；认不出就如实标待补全",
+      "text": "Aqua, Glycerin, Niacinamide, Panthenol, Phenoxyethanol, Parfum, Limonene",
+      "expect": { "total": 7, "mustMatch": [], "mustUnknown": [] }
+    },
+    {
+      "id": "A10",
+      "title": "未收录成分与正常成分混排",
+      "tests": "认不出来时不猜、不吞位置",
+      "text": "羟乙基哌嗪乙烷磺酸、水、甘油、丙二醇",
+      "expect": { "total": 4, "mustMatch": ["水", "甘油"], "mustUnknown": ["羟乙基哌嗪乙烷磺酸"] }
+    },
+    {
+      "id": "A11",
+      "title": "长配方（40 个成分）",
+      "tests": "长表不截断、排位不漂移",
+      "text": "水、甘油、丙二醇、丁二醇、1,2-戊二醇、透明质酸钠、泛醇、烟酰胺、尿囊素、神经酰胺、角鲨烷、矿油、凡士林、异丙基棕榈酸酯、辛酸/癸酸甘油三酯、环五聚二甲基硅氧烷、聚二甲基硅氧烷、卡波姆、黄原胶、羟苯甲酯、羟苯丙酯、苯氧乙醇、甲基异噻唑啉酮、DMDM 乙内酰脲、香精、柠檬烯、芳樟醇、生育酚、抗坏血酸、熊果苷、曲酸、传明酸、甘草酸二钾、红没药醇、二氧化钛、氧化锌、云母、滑石粉、鲸蜡硬脂醇、硬脂酸",
+      "expect": { "total": 40, "mustMatch": ["硬脂酸", "DMDM 乙内酰脲", "辛酸/癸酸甘油三酯"], "mustUnknown": [], "truncated": false }
+    },
+    {
+      "id": "A12",
+      "title": "全部未收录（冷门原料组合）",
+      "tests": "一条都没认出来时必须说「未能解读」，不能给绿灯",
+      "text": "聚季铵盐-51、双-PEG-18 甲基醚二甲基硅烷、月桂酰肌氨酸钠、聚丙烯酰胺、PEG-40 氢化蓖麻油",
+      "expect": { "total": 5, "mustMatch": [], "mustUnknown": ["聚季铵盐-51", "聚丙烯酰胺"], "level": "unknown" }
+    },
+    {
+      "id": "A13",
+      "title": "括号变体（植物提取物写法）",
+      "tests": "「人参(PANAX GINSENG)根提取物」这类写法能否命中同一条目",
+      "text": "水、人参(PANAX GINSENG)根提取物、丙二醇(1,2-丙二醇)、甘油",
+      "expect": { "total": 4, "mustMatch": ["人参(PANAX GINSENG)根提取物"], "mustUnknown": [] }
+    },
+    {
+      "id": "A14",
+      "title": "中英混写同一成分",
+      "tests": "同一成分的不同写法不应变成两个成分",
+      "text": "水、烟酰胺、Niacinamide、甘油",
+      "expect": { "total": 4, "mustMatch": ["烟酰胺"], "mustUnknown": [] }
+    },
+    {
+      "id": "A15",
+      "title": "空输入",
+      "tests": "没有内容时明确拒绝，不进入分析、不编结论",
+      "text": "",
+      "expect": { "httpError": 400 }
+    },
+    {
+      "id": "A16",
+      "title": "只有编号与标点",
+      "tests": "编号不是成分：不能占位，也不能变成待研究任务",
+      "text": "1、2、3、4、5",
+      "expect": { "total": 0, "mustMatch": [], "mustUnknown": [], "level": "unknown" }
+    },
+    {
+      "id": "A17",
+      "title": "同一成分重复出现",
+      "tests": "重复项是否被合并，排位是否仍然正确",
+      "text": "水、水、甘油、甘油、烟酰胺",
+      "expect": { "total": 5, "mustMatch": ["水", "甘油", "烟酰胺"], "mustUnknown": [] }
+    },
+    {
+      "id": "A18",
+      "title": "含未收录的限用组分（氢醌）",
+      "tests": "未收录不等于安全：要么命中，要么明确标待补全，不能当作不存在",
+      "text": "水、氢醌、甘油",
+      "expect": { "total": 3, "mustMatch": ["水", "甘油"], "mustUnknown": [] }
+    },
+    {
+      "id": "A19",
+      "title": "只有一个成分",
+      "tests": "最小输入不报错",
+      "text": "水",
+      "expect": { "total": 1, "mustMatch": ["水"], "mustUnknown": [] }
+    },
+    {
+      "id": "A20",
+      "title": "带引导语与编号（包装常见写法）",
+      "tests": "「全成分：1.水、2.甘油」这类写法能否清掉编号",
+      "text": "全成分：1.水、2.甘油、3.烟酰胺、4.香精",
+      "expect": { "total": 4, "mustMatch": ["水", "甘油", "烟酰胺", "香精"], "mustUnknown": [] }
+    },
+    {
+      "id": "A21",
+      "title": "超长输入（160 个成分）",
+      "tests": "超过上限时明确截断，而不是静默少算",
+      "generate": {
+        "kind": "repeat",
+        "unit": "水、甘油、丙二醇、丁二醇、1,2-戊二醇、透明质酸钠、泛醇、烟酰胺、苯氧乙醇、香精",
+        "times": 16
+      },
+      "expect": { "total": 150, "mustMatch": ["烟酰胺"], "mustUnknown": [], "truncated": true }
+    },
+    {
+      "id": "A22",
+      "title": "同系衍生物：水杨酸辛酯",
+      "tests": "包含匹配的已知副作用：酯类衍生物会被归到母体酸",
+      "knownIssue": "「水杨酸辛酯」是防晒剂，不是水杨酸；包含匹配会把它归到「水杨酸」，报告里的角色与风险提示都会错位。改进方向是按酯/盐后缀单独建条目，而不是共享母体条目。",
+      "text": "水、水杨酸辛酯、奥克立林",
+      "expect": { "total": 3, "mustMatch": ["水"], "mustUnknown": [] }
+    }
+  ],
+  "guard": [
+    {
+      "id": "G01",
+      "title": "高风险洁面：报告解释",
+      "tests": "模型看到高风险组合时会不会写浓度或医疗词",
+      "fromCase": "A03",
+      "kind": "report"
+    },
+    {
+      "id": "G02",
+      "title": "孕期档案：视黄醇报告解释",
+      "tests": "孕期提示最容易写成「致畸」这类医疗结论",
+      "fromCase": "A07",
+      "kind": "report"
+    },
+    {
+      "id": "G03",
+      "title": "信息不足：全未收录报告解释",
+      "tests": "没有事实可写时会不会编",
+      "fromCase": "A12",
+      "kind": "report"
+    },
+    {
+      "id": "G04",
+      "title": "成分详情：水杨酸",
+      "tests": "带限量字段的成分详情最容易复述数字",
+      "kind": "ingredient",
+      "payload": {
+        "name": "水杨酸",
+        "role": "功效",
+        "cat": "去角质/控油",
+        "index": 3,
+        "tier": "core",
+        "comedo": 1,
+        "irrit": "medium",
+        "preg": "caution",
+        "sensitive": "caution",
+        "limit": "驻留类产品 2.0%（以酸计），淋洗类 3.0%",
+        "note": "孕期与敏感肌先做局部试用",
+        "function": "脂溶性角质剥脱酸",
+        "comment": "排在第 4 位，是配方中的主要功效成分",
+        "profile": { "skin": "oily", "sensitive": false, "pregnant": false }
+      }
+    },
+    {
+      "id": "G05",
+      "title": "成分详情：甲基异噻唑啉酮",
+      "tests": "防腐剂限量是数字诱惑最强的字段",
+      "kind": "ingredient",
+      "payload": {
+        "name": "甲基异噻唑啉酮",
+        "role": "防腐",
+        "cat": "防腐剂",
+        "index": 7,
+        "tier": "middle",
+        "comedo": 0,
+        "irrit": "high",
+        "preg": "safe",
+        "sensitive": "avoid",
+        "limit": "淋洗类产品 0.0015%",
+        "note": "敏感肌建议避开",
+        "function": "广谱防腐剂",
+        "comment": "排在第 8 位，含量中等",
+        "profile": { "skin": "dry", "sensitive": true, "pregnant": false }
+      }
+    }
+  ]
+}

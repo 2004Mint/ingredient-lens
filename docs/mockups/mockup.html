@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>成分镜 · 重构可视稿 v2</title>
+<link rel="stylesheet" href="mockup.css" />
+</head>
+<body data-view="home-desktop">
+
+<!-- ==================== 桌面 · 输入台 ==================== -->
+<section class="screen home-desktop">
+  <div class="rail" aria-hidden="true"><span>Ingredient Lens · 成分镜 · 2026</span></div>
+  <nav class="nav">
+    <div class="brandmark"><span class="mark">镜</span><span class="brandname">成分镜</span></div>
+    <div class="navlinks">
+      <a href="#" class="on">解读</a>
+      <a href="#">成分库</a>
+      <a href="#">怎么算的</a>
+    </div>
+    <div class="navright"><span class="navchip">v1.0</span><span>历史</span></div>
+  </nav>
+
+  <div class="workbench">
+    <div class="lede">
+      <p class="kicker eyebrow">Ingredient Lens · 位置即含量</p>
+      <h1 class="display">广告会夸张，<br /><span class="ital">成分表</span>不会。</h1>
+      <p class="sub">把瓶子背面的成分表粘进来。规则先给结论，模型只负责把结论讲成人话 —— 十秒，知道这瓶适不适合你。</p>
+
+      <div class="stats">
+        <div class="stat"><b>10<span class="u">秒</span></b><span>平均出结论</span></div>
+        <div class="stat"><b>60</b><span>成分知识条目</span></div>
+        <div class="stat"><b>0</b><span>张照片上传</span></div>
+      </div>
+
+      <div class="mech">
+        <div class="mech-item"><b>01</b><span>规则先判结论</span></div>
+        <div class="mech-item"><b>02</b><span>模型只解释</span></div>
+        <div class="mech-item"><b>03</b><span>数字与用语校验</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-head">
+          <span class="t">样本输入</span>
+          <span class="n">01 / PASTE</span>
+        </div>
+
+        <div class="inputarea">
+          <div class="textarea">水、甘油、丙二醇、丁二醇、1,2-戊二醇、透明质酸钠、泛醇、卡波姆、氢氧化钠、苯氧乙醇、羟苯甲酯、烟酰胺、香精、柠檬烯</div>
+          <div class="metarow">
+            <span class="count"><i class="pip"></i>已识别 14 个成分</span>
+            <button class="ghost">拍照识别</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="profilerow">
+          <span class="label">你的肤质</span>
+          <button class="chip">干性</button>
+          <button class="chip on">油性</button>
+          <button class="chip">混合</button>
+          <button class="chip">中性</button>
+        </div>
+        <div class="profilerow" style="border-top:1px dashed var(--line)">
+          <span class="label">特殊情况</span>
+          <span class="toggle"><span class="track on"><span class="knob"></span></span>敏感肌</span>
+          <span class="toggle"><span class="track"><span class="knob"></span></span>孕期</span>
+          <span class="toggle"><span class="track"><span class="knob"></span></span>哺乳期</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="submit">
+          <button class="primary">开始解读 <span class="arr">→</span></button>
+        </div>
+        <div class="hint"><span class="lock">⌁</span>成分表不离开这台机器 · 不注册也能用</div>
+      </div>
+
+      <p class="afterline">没有实物？<a href="#">看一个例子 ↗</a></p>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="concept-in">
+      <div>
+        <p class="eyebrow" style="margin-bottom:8px">THE ONLY RULE</p>
+        <h2 class="h2">位置，就是含量。</h2>
+        <p>中国法规要求成分按加入量从高到低排列。排在第 11 位之后的，通常只剩千分之几 —— 这一条，比任何广告语都可信。</p>
+      </div>
+      <div class="ruler" data-total="14">
+        <div class="zone">
+          <span>前段 · 溶剂与水</span>
+          <span>中段 · 功效</span>
+          <span>后段 · 微量</span>
+        </div>
+        <div class="scale">
+          <div class="marks">
+            <span class="mk amber" data-p="10"><b>烟酰胺 · 10</b><i></i></span>
+            <span class="mk verm" data-p="13"><b>柠檬烯 · 13</b><i></i></span>
+          </div>
+        </div>
+        <div class="ruler-foot">
+          <span>1</span><span>5</span><span>10</span><span>14</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <div class="foot-in">
+      <div class="fbrand">
+        <span class="mark">镜</span>
+        <div>
+          <div class="fname">成分镜</div>
+          <div class="ftag">规则给结论，模型讲人话。</div>
+        </div>
+      </div>
+      <div class="flinks">
+        <a href="#">成分库</a><a href="#">怎么算的</a><a href="#">隐私</a><a href="#">反馈</a>
+      </div>
+      <p class="fnote">成分信息整理，不构成医疗建议。<br />不适请停用并咨询皮肤科医生。</p>
+    </div>
+  </footer>
+</section>
+
+<!-- ==================== 桌面 · 报告 ==================== -->
+<section class="screen report-desktop">
+  <nav class="nav">
+    <div class="brandmark"><span class="mark">镜</span><span class="brandname">成分镜</span></div>
+    <div class="navlinks"><a href="#" class="on">解读</a><a href="#">成分库</a><a href="#">怎么算的</a></div>
+    <div class="navright"><span class="navchip">v1.0</span><span>历史</span></div>
+  </nav>
+
+  <div class="report-wrap">
+    <main>
+      <div class="crumbs">
+        <a class="back" href="#">← 换一瓶</a>
+        <span class="d"></span>
+        <span>美白精华液</span>
+        <span class="d"></span>
+        <span>今天 10:48</span>
+      </div>
+
+      <div class="masthead">
+        <div>
+          <span class="eyebrow">Report · 014 / 2026.11.12</span>
+          <h1 class="h1" style="font-size:26px;line-height:36px">美白精华液</h1>
+        </div>
+        <div class="mh-r">油性 · 敏感肌<br /><b>14 个成分 · 覆盖率 100%</b></div>
+      </div>
+      <div class="rule-double"></div>
+
+      <div style="position:relative">
+        <div class="specimen">
+          <div class="stub"><span class="stub-txt">Specimen 014</span></div>
+          <div class="spec-body">
+            <span class="vtag verm">建议避开</span>
+            <span class="vmeta">按你当前的档案判定</span>
+            <h1 class="h1">有 1 个成分，建议你避开</h1>
+            <p class="explain">
+              这份分析把柠檬烯标为敏感肌高风险项，建议直接避开；香精与羟苯甲酯属于需要留意的成分，其中香精是常见致敏来源。功效侧的烟酰胺排在配方后段，不是这瓶的主要功效成分。综合你的油性、敏感肌档案，整体结论偏向避开
+            </p>
+            <div class="aibadge"><span class="ok">✓</span> AI 生成 · 数字与用语已校验 · 事实来自规则与成分库</div>
+          </div>
+        </div>
+        <div class="seal"><b>避</b></div>
+      </div>
+
+      <div class="rulecard">
+        <div class="top">
+          <span class="t">配方位置尺 <em>DOSE BY POSITION</em></span>
+          <span class="note">红点 = 与你冲突的成分</span>
+        </div>
+        <div class="ruler" data-total="14">
+          <div class="zone">
+            <span>前段 · 溶剂与水</span>
+            <span>中段 · 功效</span>
+            <span>后段 · 微量</span>
+          </div>
+          <div class="scale">
+            <div class="marks">
+              <span class="mk amber" data-p="10"><b>烟酰胺 10</b><i></i></span>
+              <span class="mk verm" data-p="13"><b>柠檬烯 13</b><i></i></span>
+            </div>
+          </div>
+          <div class="ruler-foot"><span>1</span><span>5</span><span>10</span><span>14</span></div>
+        </div>
+      </div>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="idx">01</span>
+          <h2 class="h2">为什么</h2>
+          <span class="count">3 条依据</span>
+        </div>
+
+        <article class="reason">
+          <span class="idx">01</span>
+          <div>
+            <div class="name">柠檬烯 <span class="en">Limonene</span></div>
+            <div class="why">敏感肌高风险：明确的致敏成分，氧化后致敏性显著增强。它排在第 13 位，含量很低，但致敏看的是有没有，不是多少。</div>
+            <div class="ev"><span>成分库 · 香料致敏</span><span>排位 13 / 14</span></div>
+          </div>
+          <span class="chev">展开 <b>＋</b></span>
+        </article>
+
+        <article class="reason">
+          <span class="idx">02</span>
+          <div>
+            <div class="name">香精 <span class="en">Parfum</span></div>
+            <div class="why">敏感肌需留意：化妆品最主要的致敏来源之一。法规允许它不展开具体成分，所以无法逐一排查。</div>
+            <div class="ev"><span>成分库 · 香料致敏</span><span>排位 12 / 14</span></div>
+          </div>
+          <span class="chev">展开 <b>＋</b></span>
+        </article>
+
+        <article class="reason">
+          <span class="idx">03</span>
+          <div>
+            <div class="name">烟酰胺 <span class="en">Niacinamide</span></div>
+            <div class="why">排在第 10 位，已在配方后段，通常不是这瓶的主要功效成分 —— 这瓶的重点不在美白。</div>
+            <div class="ev"><span>位置推断</span><span>排位 10 / 14</span></div>
+          </div>
+          <span class="chev">展开 <b>＋</b></span>
+        </article>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="idx">02</span>
+          <h2 class="h2">完整报告</h2>
+          <span class="count">按需展开</span>
+        </div>
+        <button class="fold"><span class="idx">03</span><span class="t">配方结构</span><span class="lead"></span><span class="n">14 个成分</span><span class="chev">＋</span></button>
+        <button class="fold"><span class="idx">04</span><span class="t">功效成分</span><span class="lead"></span><span class="n">2 个</span><span class="chev">＋</span></button>
+        <button class="fold"><span class="idx">05</span><span class="t">法规限量</span><span class="lead"></span><span class="n">1 条</span><span class="chev">＋</span></button>
+        <button class="fold"><span class="idx">06</span><span class="t">我不确定的部分</span><span class="lead"></span><span class="n">0 个未识别</span><span class="chev">＋</span></button>
+      </section>
+    </main>
+
+    <aside class="aside">
+      <div class="side-card">
+        <div class="k">结论计数</div>
+        <div class="numrow verm"><span>个成分建议避开</span><b>1</b></div>
+        <div class="numrow amber"><span>个成分需要留意</span><b>2</b></div>
+        <div class="numrow moss"><span>个成分未识别</span><b>0</b></div>
+        <div class="bar"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
+        <div class="disclaimer">覆盖 14 / 14 个成分，结论可用。</div>
+      </div>
+
+      <div class="side-card">
+        <div class="k">你的档案</div>
+        <div class="profile-chips"><span class="chip on">油性</span><span class="chip on">敏感肌</span><span class="chip">+</span></div>
+        <a href="#" class="side-link">调整档案，就地重算 →</a>
+        <div class="side-actions">
+          <button class="ghost">分享</button>
+          <button class="ghost">复制</button>
+          <button class="ghost">打印</button>
+        </div>
+      </div>
+
+      <div class="side-card">
+        <div class="k">这份报告的依据</div>
+        <div class="body-s dim" style="font-size:12px;line-height:1.85">规则引擎判结论 · 成分库 v2026.10 · 生成内容经数字与医疗用语校验。不构成医疗建议。</div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ==================== 手机 · 输入台 ==================== -->
+<section class="screen home-mobile">
+  <div class="phone">
+    <div class="m-nav">
+      <span class="mark">镜</span><span class="brandname">成分镜</span>
+      <span class="menu">⋯</span>
+    </div>
+
+    <div class="m-body">
+      <p class="kicker eyebrow" style="margin-bottom:14px">位置即含量</p>
+      <h1>广告会夸张，<br /><span class="ital">成分表</span>不会。</h1>
+      <p class="m-sub">粘进来，十秒知道适不适合你。</p>
+
+      <div class="m-card">
+        <div class="textarea">水、甘油、丙二醇、丁二醇、透明质酸钠、泛醇、烟酰胺、苯氧乙醇、香精、柠檬烯</div>
+        <div class="metarow">
+          <span class="count"><i class="pip"></i>已识别 10 个</span>
+          <button class="ghost">拍照</button>
+        </div>
+        <div class="m-chips">
+          <span class="label">你的情况</span>
+          <span class="chip on">油性</span>
+          <span class="chip">敏感肌</span>
+          <span class="chip">孕期</span>
+          <span class="chip">更多</span>
+        </div>
+      </div>
+
+      <div class="m-recent">
+        <div class="section-head">
+          <span class="h3">最近解读</span>
+          <a href="#" class="caption brand" style="text-decoration:none">看一个例子 ↗</a>
+        </div>
+        <div class="recent-row">
+          <span>抗老紧致面霜</span><span class="when">昨天</span><span class="tag tag-amber">需要留意</span>
+        </div>
+        <div class="recent-row">
+          <span>清爽控油洁面</span><span class="when">10-30</span><span class="tag tag-verm">建议避开</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="m-cta">
+      <button class="primary">开始解读 <span class="arr">→</span></button>
+      <div class="hint"><span class="lock">⌁</span>不注册也能用 · 不从这台手机上传照片</div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 手机 · 报告 ==================== -->
+<section class="screen report-mobile">
+  <div class="phone">
+    <div class="m-nav">
+      <span style="color:var(--jade)">←</span><span class="brandname">美白精华液</span>
+      <span class="menu">⋯</span>
+    </div>
+
+    <div class="vstrip verm">
+      建议避开
+      <span class="sub2">油性 · 敏感</span>
+      <span class="right">14 个</span>
+    </div>
+
+    <div class="m-report">
+      <div class="m-verdict">
+        <div class="m-score">
+          <span class="big">1</span>
+          <span class="m-score-l"><b>个成分建议你避开</b><i>柠檬烯 · 第 13 位</i></span>
+        </div>
+        <p class="explain" style="margin-top:14px;font-size:13.5px;line-height:1.85">
+          柠檬烯是敏感肌高风险项，排在第 13 位含量很低，但致敏看的是有没有，不是多少。香精、羟苯甲酯需要留意。
+        </p>
+        <div class="aibadge" style="margin-top:12px;padding-top:11px">✓ AI 生成 · 已校验</div>
+      </div>
+
+      <div class="section" style="margin-top:26px">
+        <div class="section-head">
+          <h2 class="h2" style="font-size:17px">为什么</h2>
+          <span class="count">3 条</span>
+        </div>
+
+        <div class="m-reason">
+          <div class="row"><span class="idx">01</span><span class="name">柠檬烯</span><span class="tag tag-verm">建议避开</span></div>
+          <div class="why">敏感肌高风险：明确的致敏成分，氧化后致敏性增强。</div>
+          <div class="more">展开依据 ＋</div>
+        </div>
+
+        <div class="m-reason">
+          <div class="row"><span class="idx">02</span><span class="name">香精</span><span class="tag tag-amber">需留意</span></div>
+          <div class="why">化妆品最主要的致敏来源之一，具体成分可不标注。</div>
+          <div class="more">展开依据 ＋</div>
+        </div>
+
+        <div class="m-reason">
+          <div class="row"><span class="idx">03</span><span class="name">烟酰胺</span><span class="tag tag-neutral">后段</span></div>
+          <div class="why">排在第 10 位，通常不是主要功效成分。</div>
+          <div class="more">展开依据 ＋</div>
+        </div>
+      </div>
+
+      <div class="section" style="margin-top:22px">
+        <div class="section-head"><h2 class="h2" style="font-size:17px">完整报告</h2><span class="count">按需展开</span></div>
+        <div class="fold"><span class="idx">03</span><span class="t">配方结构</span><span class="lead"></span><span class="n">14 个</span><span class="chev">＋</span></div>
+        <div class="fold"><span class="idx">04</span><span class="t">功效成分</span><span class="lead"></span><span class="n">2 个</span><span class="chev">＋</span></div>
+        <div class="fold"><span class="idx">05</span><span class="t">法规限量</span><span class="lead"></span><span class="n">1 条</span><span class="chev">＋</span></div>
+      </div>
+    </div>
+
+    <div class="m-tabs">
+      <span class="on">解读</span>
+      <span>成分库</span>
+      <span>历史</span>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 设计系统板 ==================== -->
+<section class="screen system">
+  <nav class="nav">
+    <div class="brandmark"><span class="mark">镜</span><span class="brandname">成分镜</span></div>
+    <div class="navlinks"><a href="#">解读</a><a href="#">成分库</a><a href="#" class="on">怎么算的</a></div>
+    <div class="navright"><span class="navchip">design system v2</span></div>
+  </nav>
+
+  <div class="board">
+    <span class="eyebrow">Design tokens</span>
+    <h1>设计系统 · 一页看完</h1>
+    <p class="lead">纸上仪器：米色的纸、黄铜的刻度、墨绿的结论。实现时只认这张表 —— 出现第 9 种字号、第 4 个断点，算 bug。</p>
+
+    <section>
+      <h2>颜色 · 3 层纸 + 1 主色 + 1 辅色 + 3 语义色</h2>
+      <div class="swatches">
+        <div class="swatch"><div class="fill" style="background:#F1ECDF"></div><div class="meta"><b>paper</b>#F1ECDF</div></div>
+        <div class="swatch"><div class="fill" style="background:#FBF8F0"></div><div class="meta"><b>paper-2</b>#FBF8F0</div></div>
+        <div class="swatch"><div class="fill" style="background:#FFFDF7;border-bottom:1px solid #E2DACB"></div><div class="meta"><b>surface</b>#FFFDF7</div></div>
+        <div class="swatch"><div class="fill" style="background:#191510"></div><div class="meta"><b>ink</b>#191510</div></div>
+        <div class="swatch"><div class="fill" style="background:#4C463C"></div><div class="meta"><b>ink-2</b>#4C463C</div></div>
+        <div class="swatch"><div class="fill" style="background:#7A7264"></div><div class="meta"><b>ink-3</b>#7A7264</div></div>
+        <div class="swatch"><div class="fill" style="background:#17594A"></div><div class="meta"><b>jade</b>#17594A</div></div>
+        <div class="swatch"><div class="fill" style="background:#E4EEE8"></div><div class="meta"><b>jade-soft</b>#E4EEE8</div></div>
+        <div class="swatch"><div class="fill" style="background:#9C7534"></div><div class="meta"><b>brass</b>#9C7534</div></div>
+        <div class="swatch"><div class="fill" style="background:#F2E8D2"></div><div class="meta"><b>brass-soft</b>#F2E8D2</div></div>
+        <div class="swatch"><div class="fill" style="background:#A23A28"></div><div class="meta"><b>verm</b>#A23A28</div></div>
+        <div class="swatch"><div class="fill" style="background:#8A5A12"></div><div class="meta"><b>amber</b>#8A5A12</div></div>
+        <div class="swatch"><div class="fill" style="background:#2C7355"></div><div class="meta"><b>moss</b>#2C7355</div></div>
+        <div class="swatch"><div class="fill" style="background:#FAEAE4"></div><div class="meta"><b>verm-soft</b>#FAEAE4</div></div>
+        <div class="swatch"><div class="fill" style="background:#E2DACB"></div><div class="meta"><b>line</b>#E2DACB</div></div>
+        <div class="swatch"><div class="fill" style="background:#CFC4B0"></div><div class="meta"><b>line-2</b>#CFC4B0</div></div>
+        <div class="swatch" style="grid-column:span 2"><div class="fill" style="background:linear-gradient(180deg,#1C6352,#17594A 55%,#134C40)"></div><div class="meta"><b>button</b>三段渐变，禁纯黑</div></div>
+        <div class="swatch" style="grid-column:span 3"><div class="fill" style="background:radial-gradient(circle at 34% 28%,#FFFDF6,#F4EEDF 70%);box-shadow:inset 0 0 0 1px #9C7534"></div><div class="meta"><b>lens</b>铜圈 + 纸面</div></div>
+        <div class="swatch" style="grid-column:span 3"><div class="fill" style="background:repeating-linear-gradient(90deg,#CFC4B0 0 1px,transparent 1px 9px)"></div><div class="meta"><b>scale</b>刻度线 #CFC4B0</div></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>字号 · 8 级（替换现有 32 种）</h2>
+      <div class="type-row"><span class="k">display 44/54</span><span class="v display">成分表不会</span><span class="use">首屏主标题</span></div>
+      <div class="type-row"><span class="k">h1 28/38</span><span class="v h1">有 1 个成分建议你避开</span><span class="use">报告结论</span></div>
+      <div class="type-row"><span class="k">h2 21/30</span><span class="v h2">为什么</span><span class="use">段落标题</span></div>
+      <div class="type-row"><span class="k">h3 16.5/26</span><span class="v h3">柠檬烯 · 敏感肌高风险</span><span class="use">条目名</span></div>
+      <div class="type-row"><span class="k">body 15/26</span><span class="v body">这份分析把柠檬烯标为敏感肌高风险项，建议直接避开。</span><span class="use">解释正文</span></div>
+      <div class="type-row"><span class="k">body-s 13.5/23</span><span class="v body-s">敏感肌需留意：化妆品最主要的致敏来源之一。</span><span class="use">次要说明</span></div>
+      <div class="type-row"><span class="k">caption 12/18</span><span class="v caption">油性 · 敏感肌 · 14 个成分</span><span class="use">元信息</span></div>
+      <div class="type-row"><span class="k">micro 10.5/16</span><span class="v micro">成分表 · 位置即含量</span><span class="use">眉题 / 标签</span></div>
+    </section>
+
+    <section>
+      <h2>间距 · 4 的倍数</h2>
+      <div class="spaces">
+        <div class="space-item"><div class="space-box" style="width:8px;height:4px"></div>4</div>
+        <div class="space-item"><div class="space-box" style="width:12px;height:8px"></div>8</div>
+        <div class="space-item"><div class="space-box" style="width:16px;height:12px"></div>12</div>
+        <div class="space-item"><div class="space-box" style="width:20px;height:16px"></div>16</div>
+        <div class="space-item"><div class="space-box" style="width:24px;height:24px"></div>24</div>
+        <div class="space-item"><div class="space-box" style="width:28px;height:32px"></div>32</div>
+        <div class="space-item"><div class="space-box" style="width:32px;height:48px"></div>48</div>
+        <div class="space-item"><div class="space-box" style="width:36px;height:64px"></div>64</div>
+      </div>
+      <p class="body-s muted" style="margin-top:12px;font-size:11px;letter-spacing:.02em">卡片内距 18–26 · 区块间距 32–48 · 页面边距 44（移动端 18）· 行内元素间距 8 / 12</p>
+    </section>
+
+    <section>
+      <h2>签名组件 · 这四个决定“像不像一个产品”</h2>
+      <div class="comps" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="comp-cell">
+          <span class="comp-label">Lens 透镜标</span>
+          <span class="mark" style="width:40px;height:40px;font-size:16px">镜</span>
+          <span class="body-s dim">铜圈 + 纸面 + 宋体字，<br />替代圆形字母底</span>
+        </div>
+
+        <div class="comp-cell">
+          <span class="comp-label">Seal 印章</span>
+          <div style="display:flex;gap:10px">
+            <span class="seal" style="position:static;transform:rotate(-8deg);width:54px;height:54px"><b style="font-size:17px">避</b></span>
+            <span class="seal amber" style="position:static;transform:rotate(6deg);width:54px;height:54px"><b style="font-size:17px">慎</b></span>
+            <span class="seal neutral" style="position:static;transform:rotate(-4deg);width:54px;height:54px"><b style="font-size:11px">待补</b></span>
+          </div>
+        </div>
+
+        <div class="comp-cell" style="grid-column:span 2">
+          <span class="comp-label">Ruler 位置尺 · 全站唯一的“数据图形”</span>
+          <div style="flex:1">
+            <div class="ruler" data-total="14">
+              <div class="zone"><span>前段 · 溶剂与水</span><span>中段 · 功效</span><span>后段 · 微量</span></div>
+              <div class="scale">
+                <div class="marks">
+                  <span class="mk amber" data-p="10"><b>烟酰胺 10</b><i></i></span>
+                  <span class="mk verm" data-p="13"><b>柠檬烯 13</b><i></i></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="comp-cell" style="grid-column:span 2">
+          <span class="comp-label">Specimen 样本卡 · 左边打孔条</span>
+          <div class="mini-spec">
+            <span class="ms-stub">014</span>
+            <span class="ms-body"><b>美白精华液</b><i>建议避开 · 14 个成分</i></span>
+            <span class="ms-chev">›</span>
+          </div>
+          <div class="body-s dim">左侧打孔纸条 + 竖排编号，把“一份检测报告”的隐喻做进结构里；不额外加装饰。</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>圆角与控件</h2>
+      <div class="comps">
+        <div class="radius-demo" style="border-radius:16px">卡片 16</div>
+        <div class="radius-demo" style="border-radius:12px">内卡 12</div>
+        <div class="radius-demo" style="border-radius:9px">控件 9</div>
+        <div class="radius-demo" style="border-radius:999px;width:64px">胶囊</div>
+        <button class="primary" style="width:auto;padding:0 20px;height:42px">主按钮 <span class="arr">→</span></button>
+        <button class="ghost">次按钮</button>
+        <span class="chip on">已选中</span>
+        <span class="chip">未选中</span>
+        <span class="tag tag-verm">建议避开</span>
+        <span class="tag tag-amber">需要留意</span>
+        <span class="tag tag-moss">无明显风险</span>
+        <span class="role">功效</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>断点 · 只留 3 个</h2>
+      <div class="comps">
+        <div class="radius-demo" style="width:auto;padding:0 14px;height:44px">≤ 640 单列 · 底栏 58</div>
+        <div class="radius-demo" style="width:auto;padding:0 14px;height:44px">641–1023 收窄 · 侧栏下沉</div>
+        <div class="radius-demo" style="width:auto;padding:0 14px;height:44px">≥ 1024 两栏 · 1fr 312</div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ==================== 成分库 ==================== -->
+<section class="screen library-desktop">
+  <nav class="nav">
+    <div class="brandmark"><span class="mark">镜</span><span class="brandname">成分镜</span></div>
+    <div class="navlinks"><a href="#">解读</a><a href="#" class="on">成分库</a><a href="#">怎么算的</a></div>
+    <div class="navright"><span class="navchip">v1.0</span><span>历史</span></div>
+  </nav>
+
+  <div class="lib-wrap">
+    <div class="lib-head">
+      <div>
+        <span class="eyebrow">Ingredient library</span>
+        <h1>成分库</h1>
+      </div>
+      <span class="k">60 条 · 库版本 2026.10</span>
+    </div>
+
+    <div class="search">
+      <span class="ic">⌕</span>
+      <span class="ph">搜索成分名、别名或 INCI，例如 烟酰胺 / Niacinamide</span>
+      <span class="kbd">/</span>
+    </div>
+
+    <div class="filters">
+      <span class="label">角色</span>
+      <span class="chip on">全部</span><span class="chip">功效</span><span class="chip">防腐</span><span class="chip">香精</span><span class="chip">防晒</span>
+      <span class="sep"></span>
+      <span class="label">风险</span>
+      <span class="chip">高</span><span class="chip">中</span><span class="chip">低</span>
+    </div>
+
+    <div style="margin-top:26px">
+      <div class="lib-row">
+        <span class="sn">01</span>
+        <div><span class="nm">烟酰胺</span><span class="en">Niacinamide</span></div>
+        <span class="role">功效</span><span class="risk-l">低风险</span>
+        <span class="fn">抑制黑色素转运，兼顾控油与屏障修护</span><span class="chev">›</span>
+      </div>
+      <div class="lib-row">
+        <span class="sn">02</span>
+        <div><span class="nm">透明质酸钠</span><span class="en">Sodium Hyaluronate</span></div>
+        <span class="role">功效</span><span class="risk-l">低风险</span>
+        <span class="fn">强吸水性保湿剂，不同分子量作用于不同层次</span><span class="chev">›</span>
+      </div>
+      <div class="lib-row">
+        <span class="sn">03</span>
+        <div><span class="nm">羟苯甲酯</span><span class="en">Methylparaben</span></div>
+        <span class="role">防腐</span><span class="risk-m">中风险</span>
+        <span class="fn">经典防腐剂，抑菌谱广、成本低</span><span class="chev">›</span>
+      </div>
+      <div class="lib-row">
+        <span class="sn">04</span>
+        <div><span class="nm">香精</span><span class="en">Parfum</span></div>
+        <span class="role">香精</span><span class="risk-h">高风险</span>
+        <span class="fn">化妆品最主要的致敏来源之一</span><span class="chev">›</span>
+      </div>
+      <div class="lib-row">
+        <span class="sn">05</span>
+        <div><span class="nm">柠檬烯</span><span class="en">Limonene</span></div>
+        <span class="role">香精</span><span class="risk-h">高风险</span>
+        <span class="fn">柑橘调香料，氧化后致敏性显著上升</span><span class="chev">›</span>
+      </div>
+      <div class="lib-row">
+        <span class="sn">06</span>
+        <div><span class="nm">视黄醇</span><span class="en">Retinol</span></div>
+        <span class="role">功效</span><span class="risk-m">中风险</span>
+        <span class="fn">促进角质更新与胶原合成，孕期需避</span><span class="chev">›</span>
+      </div>
+    </div>
+
+    <div class="lib-foot">
+      <span>共 60 条 · 只读标签与成分信息，不评价商品优劣</span>
+      <span>v2026.10 · 人工复核</span>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== AI 生成中 ==================== -->
+<section class="screen report-loading">
+  <nav class="nav">
+    <div class="brandmark"><span class="mark">镜</span><span class="brandname">成分镜</span></div>
+    <div class="navlinks"><a href="#" class="on">解读</a><a href="#">成分库</a><a href="#">怎么算的</a></div>
+    <div class="navright"><span class="navchip">v1.0</span><span>历史</span></div>
+  </nav>
+
+  <div class="report-wrap">
+    <main>
+      <div class="crumbs">
+        <a class="back" href="#">← 换一瓶</a><span class="d"></span><span>美白精华液</span><span class="d"></span><span>正在分析</span>
+      </div>
+
+      <div class="masthead">
+        <div>
+          <span class="eyebrow">Report · 014 / 生成中</span>
+          <h1 class="h1" style="font-size:26px;line-height:36px">美白精华液</h1>
+        </div>
+        <div class="mh-r">油性 · 敏感肌<br /><b>14 个成分 · 规则已出结论</b></div>
+      </div>
+      <div class="rule-double"></div>
+
+      <div class="specimen">
+        <div class="stub"><span class="stub-txt">Specimen 014</span></div>
+        <div class="spec-body">
+          <span class="vtag verm">建议避开</span>
+          <span class="vmeta">结论来自规则引擎，不依赖模型</span>
+          <h1 class="h1">有 1 个成分，建议你避开</h1>
+
+          <div class="steps">
+            <span class="step done"><i class="dot"></i>读取规则结论</span>
+            <span class="step on"><i class="dot"></i>生成解释</span>
+            <span class="step"><i class="dot"></i>数字与用语校验</span>
+          </div>
+
+          <p class="stream">这份分析把柠檬烯标为敏感肌高风险项，建议直接避开；香精与羟苯甲酯属于需要留意的成分，其中香精是常见致敏来源<span class="bar"></span></p>
+        </div>
+      </div>
+
+      <div class="section" style="margin-top:36px">
+        <div class="section-head"><span class="idx">02</span><h2 class="h2">完整报告</h2><span class="count">等待解释生成</span></div>
+        <div class="fold" style="opacity:.45"><span class="idx">03</span><span class="t">配方结构</span><span class="lead"></span><span class="n">14 个成分</span><span class="chev">等待</span></div>
+        <div class="fold" style="opacity:.45"><span class="idx">04</span><span class="t">功效成分</span><span class="lead"></span><span class="n">2 个</span><span class="chev">等待</span></div>
+        <div class="fold" style="opacity:.45"><span class="idx">05</span><span class="t">法规限量</span><span class="lead"></span><span class="n">1 条</span><span class="chev">等待生成</span></div>
+      </div>
+    </main>
+
+    <aside class="aside">
+      <div class="side-card">
+        <div class="k">结论计数</div>
+        <div class="numrow verm"><span>个成分建议避开</span><b>1</b></div>
+        <div class="numrow amber"><span>个成分需要留意</span><b>2</b></div>
+        <div class="numrow moss"><span>个成分未识别</span><b>0</b></div>
+      </div>
+      <div class="side-card">
+        <div class="k">你的档案</div>
+        <div class="profile-chips"><span class="chip on">油性</span><span class="chip on">敏感肌</span></div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ==================== 信息不足 ==================== -->
+<section class="screen report-insufficient">
+  <nav class="nav">
+    <div class="brandmark"><span class="mark">镜</span><span class="brandname">成分镜</span></div>
+    <div class="navlinks"><a href="#" class="on">解读</a><a href="#">成分库</a><a href="#">怎么算的</a></div>
+    <div class="navright"><span class="navchip">v1.0</span><span>历史</span></div>
+  </nav>
+
+  <div class="report-wrap">
+    <main>
+      <div class="crumbs">
+        <a class="back" href="#">← 换一瓶</a><span class="d"></span><span>某精华（拍照识别）</span><span class="d"></span><span>刚刚</span>
+      </div>
+
+      <div class="masthead">
+        <div>
+          <span class="eyebrow">Report · 015 / 覆盖不足</span>
+          <h1 class="h1" style="font-size:26px;line-height:36px">某精华（拍照识别）</h1>
+        </div>
+        <div class="mh-r">油性 · 敏感肌<br /><b>14 个成分 · 只认出 4 个</b></div>
+      </div>
+      <div class="rule-double"></div>
+
+      <div style="position:relative">
+        <div class="specimen">
+          <div class="stub"><span class="stub-txt">Specimen 015</span></div>
+          <div class="spec-body">
+            <span class="vtag neutral">信息不足</span>
+            <span class="vmeta">覆盖率 28% · 不下结论</span>
+            <h1 class="h1">这瓶暂时给不出结论</h1>
+            <p class="explain">只认出了 4 个成分，其余 10 个不在成分库里。覆盖度不够时，任何“可以放心”的结论都不可靠，所以我们不猜。</p>
+
+            <div class="why-note">
+              认不出来，不等于安全。你可以：<b>重新拍一张</b>（对准成分表、避开反光），或直接把成分表<b>粘贴</b>进来。剩余成分已进入后台研究队列，补全后再点一次即可。
+            </div>
+
+            <div style="margin-top:18px;display:flex;gap:10px;align-items:center">
+              <button class="primary" style="width:auto;padding:0 22px;height:44px">重新拍照 <span class="arr">→</span></button>
+              <button class="ghost" style="height:44px;padding:0 16px">粘贴成分表</button>
+            </div>
+          </div>
+        </div>
+        <div class="seal neutral"><b>待补</b></div>
+      </div>
+
+      <section class="section">
+        <div class="section-head"><span class="idx">01</span><h2 class="h2">认出来的 4 个</h2><span class="count">可以看详情</span></div>
+        <article class="reason">
+          <span class="idx">01</span>
+          <div>
+            <div class="name">水 <span class="en">Aqua</span></div>
+            <div class="why">溶剂，配方基底。</div>
+            <div class="ev"><span>成分库</span><span>排位 1 / 14</span></div>
+          </div>
+          <span class="chev">展开 <b>＋</b></span>
+        </article>
+        <article class="reason">
+          <span class="idx">02</span>
+          <div>
+            <div class="name">甘油 <span class="en">Glycerin</span></div>
+            <div class="why">吸水性保湿剂，最经典也最便宜有效。</div>
+            <div class="ev"><span>成分库</span><span>排位 2 / 14</span></div>
+          </div>
+          <span class="chev">展开 <b>＋</b></span>
+        </article>
+        <article class="reason">
+          <span class="idx">03</span>
+          <div>
+            <div class="name">丙二醇 <span class="en">Propylene Glycol</span></div>
+            <div class="why">保湿与渗透促进，少数人对它敏感。</div>
+            <div class="ev"><span>成分库</span><span>排位 3 / 14</span></div>
+          </div>
+          <span class="chev">展开 <b>＋</b></span>
+        </article>
+        <article class="reason">
+          <span class="idx">04</span>
+          <div>
+            <div class="name">丁二醇 <span class="en">Butylene Glycol</span></div>
+            <div class="why">保湿与溶剂，刺激性低于丙二醇。</div>
+            <div class="ev"><span>成分库</span><span>排位 4 / 14</span></div>
+          </div>
+          <span class="chev">展开 <b>＋</b></span>
+        </article>
+      </section>
+
+      <section class="section">
+        <div class="section-head"><span class="idx">02</span><h2 class="h2">没认出来的 10 个</h2><span class="count">占位不跳号</span></div>
+        <div class="miss-row"><span class="slot">05</span><span class="txt">未收录成分</span><span class="dash"></span><span class="note">已进入研究队列</span></div>
+        <div class="miss-row"><span class="slot">06</span><span class="txt">未收录成分</span><span class="dash"></span><span class="note">已进入研究队列</span></div>
+        <div class="miss-row"><span class="slot">07</span><span class="txt">未收录成分</span><span class="dash"></span><span class="note">已进入研究队列</span></div>
+        <div class="miss-row" style="border-style:solid;background:transparent"><span class="slot">…</span><span class="txt">还有 7 个未收录</span><span class="dash"></span><span class="note">全部已进入研究队列</span></div>
+      </section>
+    </main>
+
+    <aside class="aside">
+      <div class="side-card">
+        <div class="k">覆盖率</div>
+        <div class="numrow"><span>个已识别</span><b style="color:var(--moss)">4</b></div>
+        <div class="numrow"><span>个未识别</span><b style="color:var(--ink-3)">10</b></div>
+        <div class="bar"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i></div>
+        <div class="disclaimer">28% —— 低于 50% 一律不下结论，这是硬规则。</div>
+      </div>
+      <div class="side-card">
+        <div class="k">下一步</div>
+        <div class="body-s dim" style="font-size:12.5px;line-height:1.85">补全 10 个成分后，报告会自动重算，不需要重新输入。</div>
+        <a href="#" class="side-link">立即刷新 →</a>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<script>
+  // 1. 画面切换（评审用）
+  const view = (location.hash || '#home-desktop').slice(1);
+  document.body.dataset.view = view;
+  document.querySelectorAll('.screen').forEach((el) => {
+    el.style.display = el.classList.contains(view) ? 'block' : 'none';
+  });
+
+  // 2. 位置尺：生成刻度 + 按排位定位标记
+  document.querySelectorAll('.ruler').forEach((ruler) => {
+    const total = Number(ruler.dataset.total || 14);
+    const scale = ruler.querySelector('.scale');
+    if (!scale) return;
+    for (let i = 0; i < total; i += 1) {
+      const tk = document.createElement('i');
+      tk.className = 'tk' + (i % 5 === 0 ? ' major' : '') + (i === total - 1 ? ' major last' : '');
+      scale.appendChild(tk);
+    }
+    ruler.querySelectorAll('.mk').forEach((mk) => {
+      const p = Number(mk.dataset.p || 1);
+      mk.style.left = (((p - 0.5) / total) * 100).toFixed(3) + '%';
+    });
+  });
+</script>
+</body>
+</html>

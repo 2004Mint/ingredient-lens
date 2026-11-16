@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>成分镜 · 技术文档</title>
+<style>
+  /* ============ 打印版式：A4，正文 10.4pt，行高 1.78 ============ */
+  @page { size: A4; }
+
+  :root {
+    --ink: #191510;
+    --ink2: #4C463C;
+    --ink3: #7A7264;
+    --line: #E2DACB;
+    --line2: #CFC4B0;
+    --paper: #F1ECDF;
+    --paper2: #FBF8F0;
+    --card: #FFFDF7;
+    --jade: #17594A;
+    --jade-deep: #0C362C;
+    --jade-soft: #E4EEE8;
+    --brass: #9C7534;
+    --brass-line: #DFCB9F;
+    --verm: #A23A28;
+    --amber: #8A5A12;
+    --moss: #2C7355;
+    --serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+    --sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --mono: "Cascadia Mono", Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 10.4pt;
+    line-height: 1.78;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ============ 封面 ============ */
+  .cover {
+    height: 258mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding-top: 6mm;
+  }
+  .cover .top { display: flex; align-items: center; gap: 10px; }
+  .lens {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 1px solid var(--brass);
+    box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 3px rgba(156,117,52,.28);
+    display: grid; place-items: center;
+    font-family: var(--serif); font-size: 12pt; color: var(--jade-deep);
+  }
+  .cover .brand { font-family: var(--serif); font-size: 13pt; letter-spacing: .12em; }
+  .cover .kicker {
+    font-family: var(--mono); font-size: 8pt; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--brass); margin-top: 2px;
+  }
+  .cover h1 {
+    font-family: var(--serif); font-size: 40pt; line-height: 1.22;
+    font-weight: 600; letter-spacing: -.01em; margin: 0 0 6mm;
+  }
+  .cover h1 em { font-style: normal; color: var(--jade); }
+  .cover .sub { font-size: 12.5pt; color: var(--ink2); line-height: 1.9; max-width: 128mm; }
+  .cover .rule { height: 3px; border-top: 1px solid var(--line2); border-bottom: 1px solid var(--line); margin: 8mm 0; }
+  .cover .meta { display: grid; grid-template-columns: 32mm 1fr; gap: 3mm 0; font-size: 9.6pt; }
+  .cover .meta dt { color: var(--ink3); font-family: var(--mono); font-size: 8pt; letter-spacing: .14em; text-transform: uppercase; padding-top: 1mm; }
+  .cover .meta dd { margin: 0; color: var(--ink); }
+  .cover .foot { font-family: var(--mono); font-size: 8pt; letter-spacing: .12em; color: var(--ink3); text-transform: uppercase; }
+
+  /* ============ 目录 ============ */
+  .toc h2 { font-family: var(--serif); font-size: 20pt; margin: 0 0 6mm; }
+  .toc ol { list-style: none; margin: 0; padding: 0; }
+  .toc li {
+    display: flex; align-items: baseline; gap: 6px;
+    padding: 2.1mm 0; border-bottom: 1px dotted var(--line2); font-size: 10.4pt;
+  }
+  .toc li .n { font-family: var(--mono); font-size: 8.5pt; color: var(--brass); width: 12mm; flex: none; }
+  .toc li .t { flex: 1; }
+  .toc li .p { font-family: var(--mono); font-size: 8.5pt; color: var(--ink3); }
+  .toc .note { margin-top: 8mm; font-size: 9pt; color: var(--ink3); line-height: 1.9; }
+
+  /* ============ 章节 ============ */
+  .chapter { break-before: page; }
+  h1.sec {
+    font-family: var(--serif); font-size: 21pt; line-height: 1.35;
+    margin: 0 0 2mm; letter-spacing: -.01em;
+  }
+  .sec-kicker {
+    font-family: var(--mono); font-size: 8pt; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--brass); margin-bottom: 2mm;
+  }
+  .sec-rule { height: 3px; border-top: 1px solid var(--line2); border-bottom: 1px solid var(--line); margin: 0 0 5mm; }
+  h2 {
+    font-family: var(--serif); font-size: 13pt; font-weight: 600;
+    margin: 7mm 0 2mm; padding-bottom: 1.6mm; border-bottom: 1px solid var(--line);
+  }
+  h2 .no { font-family: var(--mono); font-size: 8.5pt; color: var(--brass); margin-right: 3mm; letter-spacing: .1em; }
+  h3 { font-size: 10.8pt; font-weight: 700; margin: 4.5mm 0 1.5mm; color: var(--ink); }
+  p { margin: 0 0 2.4mm; text-align: justify; }
+  .lead { font-size: 11pt; color: var(--ink2); line-height: 1.85; }
+  strong { font-weight: 700; }
+  code, .m {
+    font-family: var(--mono); font-size: 9pt; background: var(--paper2);
+    border: 1px solid var(--line); border-radius: 2px; padding: 0 1.2mm;
+  }
+  ul, ol { margin: 0 0 2.6mm; padding-left: 5mm; }
+  li { margin-bottom: 1.1mm; }
+
+  /* ============ 表格 ============ */
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 9.3pt; line-height: 1.65; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+  h1.sec, h2, h3 { break-after: avoid; }
+  .note, .box, .kpis { break-inside: avoid; }
+  .step { break-inside: avoid; }
+  th, td { text-align: left; padding: 1.8mm 2mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th {
+    background: var(--paper2); border-top: 1px solid var(--line2);
+    font-weight: 700; color: var(--ink2); font-size: 8.8pt; letter-spacing: .02em;
+  }
+  tbody tr:last-child td { border-bottom: 1px solid var(--line2); }
+  td.num, th.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ok { color: var(--moss); font-weight: 700; }
+  .no { color: var(--verm); font-weight: 700; }
+
+  /* ============ 块 ============ */
+  .note {
+    background: var(--paper2); border: 1px solid var(--line);
+    border-left: 3px solid var(--brass); border-radius: 2px;
+    padding: 3mm 4mm; margin: 3mm 0 4mm; font-size: 9.6pt; line-height: 1.8; color: var(--ink2);
+  }
+  .note b { color: var(--ink); }
+  .warn { border-left-color: var(--verm); }
+  .good { border-left-color: var(--moss); }
+  .box { border: 1px solid var(--line); border-radius: 2px; padding: 3mm 4mm; margin: 2mm 0 4mm; }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line2); border-bottom: 1px solid var(--line); margin: 4mm 0 5mm; }
+  .kpi { padding: 3mm 0 3mm 4mm; border-left: 1px solid var(--line); }
+  .kpi:first-child { border-left: none; padding-left: 0; }
+  .kpi b { display: block; font-family: var(--serif); font-size: 17pt; line-height: 1.2; color: var(--jade-deep); }
+  .kpi span { display: block; font-size: 8.6pt; color: var(--ink3); margin-top: 1mm; }
+
+  /* 架构图：纯 CSS 三层 */
+  .arch { margin: 3mm 0 5mm; }
+  .arch .row { display: grid; grid-template-columns: 26mm 1fr; gap: 3mm; align-items: stretch; margin-bottom: 2mm; }
+  .arch .side {
+    font-family: var(--mono); font-size: 7.6pt; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink3); padding-top: 2.6mm; text-align: right;
+  }
+  .arch .cells { display: grid; gap: 2mm; }
+  .arch .cell {
+    border: 1px solid var(--line2); border-radius: 2px; background: var(--card);
+    padding: 2.4mm 3mm; font-size: 9pt; line-height: 1.6;
+  }
+  .arch .cell b { display: block; font-size: 9.4pt; }
+  .arch .cell span { color: var(--ink3); font-size: 8.4pt; }
+  .arch .cell.jade { border-color: var(--jade); background: var(--jade-soft); }
+  .arch .arrow { text-align: center; color: var(--brass); font-family: var(--mono); font-size: 9pt; margin: 1mm 0 2mm; }
+
+  /* 时序 / 步骤 */
+  .steps { margin: 2mm 0 4mm; }
+  .step { display: grid; grid-template-columns: 9mm 1fr; gap: 3mm; padding: 1.6mm 0; border-bottom: 1px dotted var(--line2); }
+  .step .i { font-family: var(--mono); font-size: 8.2pt; color: var(--brass); padding-top: .6mm; }
+  .step .c b { display: block; font-size: 9.6pt; line-height: 1.6; }
+  .step .c span { color: var(--ink3); font-size: 8.8pt; }
+
+  .cols2 { column-count: 2; column-gap: 8mm; }
+  .cols2 p { break-inside: avoid; }
+
+  .figure { margin: 3mm 0 4mm; }
+  .figure .cap { font-size: 8.4pt; color: var(--ink3); text-align: center; margin-top: 2mm; }
+  .figure .frame { border: 1px solid var(--line); background: var(--card); padding: 4mm; }
+
+  /* 位置尺（文档里也用一次，说明设计） */
+  .ruler { position: relative; height: 22mm; margin: 3mm 0 6mm; }
+  .ruler .zone { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 7.2pt; letter-spacing: .1em; color: var(--ink3); text-transform: uppercase; }
+  .ruler .scale { position: relative; height: 12mm; margin-top: 2mm; border-bottom: 1px solid var(--line2); }
+  .ruler .tk { position: absolute; bottom: 0; width: 1px; background: var(--line2); }
+  .ruler .tk.major { background: var(--ink3); }
+  .ruler .mk { position: absolute; bottom: -1.5mm; transform: translateX(-50%); text-align: center; }
+  .ruler .mk i { display: block; width: 2.6mm; height: 2.6mm; border-radius: 50%; margin: 0 auto; }
+  .ruler .mk b { display: block; font-size: 7.6pt; white-space: nowrap; margin-bottom: 1mm; }
+  .ruler .mk.v i { background: var(--verm); }
+  .ruler .mk.v b { color: var(--verm); }
+  .ruler .mk.a i { background: var(--amber); }
+  .ruler .mk.a b { color: var(--amber); }
+  .ruler .mk.g i { background: var(--moss); }
+  .ruler .mk.g b { color: var(--moss); }
+
+  .tbl-cap { font-size: 8.4pt; color: var(--ink3); margin: -2mm 0 4mm; }
+  .footnote { font-size: 8.2pt; color: var(--ink3); line-height: 1.75; }
+</style>
+</head>
+<body>
+
+<!-- ============================ 封面 ============================ -->
+<section class="cover">
+  <div>
+    <div class="top">
+      <span class="lens">镜</span>
+      <div>
+        <div class="brand">成分镜</div>
+        <div class="kicker">Ingredient Lens</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="rule"></div>
+    <h1>把成分表<br />翻译成<em>对你的结论</em></h1>
+    <p class="sub">
+      技术文档 · 第九届传智杯全国大学生数智创新与 AI 应用大赛<br />
+      AI WEB 网页开发挑战赛 · 省赛提交版
+    </p>
+  </div>
+
+  <div>
+    <dl class="meta">
+      <dt>作品名称</dt><dd>成分镜（Ingredient Lens）</dd>
+      <dt>参赛组别</dt><dd>AI WEB 网页开发挑战赛 · 团队赛</dd>
+      <dt>版本</dt><dd>v1.0.0 · 规则库 2026.10 · 成分库 2026.10</dd>
+      <dt>形态</dt><dd>Web 应用（桌面端 + 移动端），本地可运行</dd>
+      <dt>文档版本</dt><dd>2026-11-12 · 第 1 版</dd>
+    </dl>
+    <div class="rule" style="margin:6mm 0 4mm"></div>
+    <div class="foot">一行结论 · 三条理由 · 一把尺</div>
+  </div>
+</section>
+
+<!-- ============================ 目录 ============================ -->
+<section class="chapter toc">
+  <div class="sec-kicker">Contents</div>
+  <h2>目录</h2>
+  <ol>
+    <li><span class="n">01</span><span class="t">项目概述</span><span class="p">3</span></li>
+    <li><span class="n">02</span><span class="t">需求分析</span><span class="p">5</span></li>
+    <li><span class="n">03</span><span class="t">系统架构设计</span><span class="p">7</span></li>
+    <li><span class="n">04</span><span class="t">AI 技术方案</span><span class="p">9</span></li>
+    <li><span class="n">05</span><span class="t">核心功能实现</span><span class="p">18</span></li>
+    <li><span class="n">06</span><span class="t">测试与部署</span><span class="p">22</span></li>
+    <li><span class="n">07</span><span class="t">创新点说明</span><span class="p">25</span></li>
+    <li><span class="n">08</span><span class="t">总结与展望</span><span class="p">27</span></li>
+    <li><span class="n">A</span><span class="t">附录：接口、数据字段与术语</span><span class="p">28</span></li>
+  </ol>
+
+  <div class="note" style="margin-top:10mm">
+    <b>一句话读法：</b>第 4 章是这份文档的重点 —— 我们如何让一个会编造的大模型，只在“可核对的表达”这一层活动。
+    第 7 章把创新点单独列成清单，方便对照评审表。
+  </div>
+
+  <div class="note">
+    <b>关于本文档的口径：</b>所有数字、测试结果、接口与版本号都来自当前仓库与实机运行，没有预估数。
+    凡是尚未验证的部分，在第 6.3 节单独列出，不写进成果里。
+  </div>
+</section>
+
+<!-- ============================ 1 项目概述 ============================ -->
+<section class="chapter">
+  <div class="sec-kicker">Chapter 01</div>
+  <h1 class="sec">项目概述</h1>
+  <div class="sec-rule"></div>
+
+  <p class="lead">
+    成分镜是一个“读成分表”的工具：把化妆品包装背面的成分表粘进来，十秒内给出
+    <b>一句结论、三条理由、一把排位尺</b>。结论由规则引擎判定，大模型只负责把结论讲成人话。
+  </p>
+
+  <h2><span class="no">1.1</span>问题：成分表是公开的，但没人看得懂</h2>
+  <p>
+    中国法规要求化妆品标签按加入量从高到低列出全部成分。也就是说，<b>排位本身就是含量信息</b>：
+    排在第 11 位之后的成分，通常只剩千分之几。这条规则是公开的，但消费者拿不到三个东西：
+  </p>
+  <ul>
+    <li><b>排位的含义</b>——“烟酰胺排第 3”到底算不算主打？前 5 位和后 10 位的差别有多大？</li>
+    <li><b>和自己的关系</b>——同一瓶东西，油皮、敏感肌、孕期看到的结论应该不一样，但标签上只有一个配方。</li>
+    <li><b>可核对的说法</b>——博主测评是二手解读，通用大模型会给出“浓度约 5%”“能治痘痘”这类无法核对、甚至越界的话。</li>
+  </ul>
+
+  <h2><span class="no">1.2</span>我们做了什么</h2>
+  <p>三件事，对应三个层次：</p>
+  <div class="box">
+    <p style="margin-bottom:1.6mm"><b>① 结论层：</b>规则引擎读完排位、成分角色、法规限量、你的档案，给出四档结论之一 ——
+      <span class="ok">可以放心</span> / <span style="color:var(--amber);font-weight:700">需要留意</span> /
+      <span class="no">建议避开</span> / <span style="color:var(--ink3);font-weight:700">信息不足</span>。
+      这一层不经过模型，因此可复现、可测试、可追责。</p>
+    <p style="margin-bottom:0"><b>② 解释层：</b>模型把已经判定好的事实写成 2–4 句中文。
+      它不能新增成分、不能出现任何数字、不能出现医疗用语——三道闸门在它后面等着。</p>
+  </div>
+  <p>
+    第三层是<b>证据层</b>：报告默认只展开结论和三条理由，完整清单、法规提示、成分详情折叠在后面。
+    用户不需要一次看完 30 个成分，他只需要知道“这瓶能不能用，为什么”。
+  </p>
+
+  <h2><span class="no">1.3</span>关键数字</h2>
+  <div class="kpis">
+    <div class="kpi"><b>90</b><span>成分库当前条目（内置 60）</span></div>
+    <div class="kpi"><b>&lt; 1s</b><span>规则出结论</span></div>
+    <div class="kpi"><b>150</b><span>单次解析成分上限</span></div>
+    <div class="kpi"><b>6</b><span>AI 输出闸门</span></div>
+  </div>
+
+  <h2><span class="no">1.4</span>边界：我们不做什么</h2>
+  <table>
+    <thead><tr><th style="width:34%">不做</th><th>原因</th></tr></thead>
+    <tbody>
+      <tr><td>不给商品打分、不推荐买哪一瓶</td><td>我们只读标签，不测评商品；打分需要配方外信息，也容易被当成广告</td></tr>
+      <tr><td>不替代皮肤科诊断、不给用药建议</td><td>医疗建议有执业边界；模型输出里九个医疗用语一律拦截</td></tr>
+      <tr><td>不让模型判断限量与禁忌</td><td>法规判断必须可追溯，交给规则表和人工维护的成分库</td></tr>
+      <tr><td>不把“没认出来”包装成“没问题”</td><td>覆盖率低于 50% 时直接给“信息不足”，而不是给一个好看的绿灯</td></tr>
+    </tbody>
+  </table>
+  <div class="note good">
+    <b>这条边界不是免责声明，而是产品设计的一部分。</b>它决定了后面所有的技术取舍：
+    为什么结论必须由规则给、为什么模型不能碰数字、为什么认不出时要明说认不出。
+  </div>
+</section>
+
+<!-- ============================ 2 需求分析 ============================ -->
+<section class="chapter">
+  <div class="sec-kicker">Chapter 02</div>
+  <h1 class="sec">需求分析</h1>
+  <div class="sec-rule"></div>
+
+  <h2><span class="no">2.1</span>目标用户与场景</h2>
+  <table>
+    <thead><tr><th style="width:22%">人群</th><th style="width:34%">典型场景</th><th>他们现在怎么做</th></tr></thead>
+    <tbody>
+      <tr><td><b>敏感肌 / 泛红人群</b></td><td>买新精华前，想知道里面有没有自己的致敏项</td><td>拍照发到社交平台问，或者搜“XX 成分 敏感肌”，看到的多是二手结论</td></tr>
+      <tr><td><b>孕期 / 备孕</b></td><td>确认有没有孕期需要回避的成分</td><td>背一张“孕妇慎用清单”，但清单和实际配方对不上</td></tr>
+      <tr><td><b>成分党初学者</b></td><td>想知道“排在第 12 位的烟酰胺到底算不算主打”</td><td>看博主拆解，无法验证；或者自己查 INCI 表</td></tr>
+      <tr><td><b>送人 / 帮家人看</b></td><td>帮妈妈看一瓶面霜能不能用</td><td>只能凭印象，缺少可转发的结论</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="no">2.2</span>现有方案为什么不够</h2>
+  <table>
+    <thead><tr><th style="width:20%">方案</th><th style="width:40%">能做到</th><th>做不到 / 风险</th></tr></thead>
+    <tbody>
+      <tr><td>博主测评</td><td>有经验、有语气、容易懂</td><td>二手结论、不可核对；带商业合作时立场不透明</td></tr>
+      <tr><td>通用大模型直接问</td><td>能解释成分作用，回答流畅</td><td>会编造浓度与功效；会给出医疗建议；同一份成分表两次回答不一致</td></tr>
+      <tr><td>成分查询 App</td><td>成分百科全、有安全分</td><td>分值是黑箱；不结合个人档案；常把商品整体打分，变成“推荐购买”</td></tr>
+      <tr><td><b>成分镜</b></td><td>规则给结论、模型讲人话、每条结论带依据</td><td>成分库只覆盖高频成分；不做商品测评；不做医疗建议</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="no">2.3</span>功能需求（MoSCoW）</h2>
+  <table>
+    <thead><tr><th style="width:12%">优先级</th><th style="width:32%">功能</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><b>Must</b></td><td>粘贴解析</td><td>顿号 / 逗号 / 换行 / 空格混合输入都能切分，去重、去序号、超长截断</td></tr>
+      <tr><td><b>Must</b></td><td>规则结论</td><td>排位 + 角色 + 风险 + 法规 + 个人档案，四档结论</td></tr>
+      <tr><td><b>Must</b></td><td>为什么（≤3 条）</td><td>只列真正影响结论的条目，不铺满全部成分</td></tr>
+      <tr><td><b>Must</b></td><td>覆盖率与未识别占位</td><td>认不出的成分保留原排位，用虚线占位，不跳号</td></tr>
+      <tr><td><b>Should</b></td><td>个人档案</td><td>干性/油性/混合/中性 + 敏感肌 + 孕期/哺乳期，切换后即时重算</td></tr>
+      <tr><td><b>Should</b></td><td>流式解释</td><td>先出结论，再逐字出解释；失败时回退本地模板并说明原因</td></tr>
+      <tr><td><b>Should</b></td><td>拍照识别</td><td>视觉模型读成分表；未配置或失败时降级为手动粘贴</td></tr>
+      <tr><td><b>Should</b></td><td>分享 / 历史 / 成分库</td><td>分享只读链接；历史存在本机浏览器；成分库可按角色与风险筛选</td></tr>
+      <tr><td><b>Could</b></td><td>AI 研究队列</td><td>未收录成分进入后台研究，自动收录后回写成分库并触发重算</td></tr>
+      <tr><td><b>Won't</b></td><td>账号体系 / 商品评分 / 医疗建议</td><td>见 1.4 节</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="no">2.4</span>非功能需求</h2>
+  <table>
+    <thead><tr><th style="width:18%">维度</th><th style="width:36%">要求</th><th>落地方式</th></tr></thead>
+    <tbody>
+      <tr><td>隐私</td><td>成分表与档案不离开本机</td><td>无账号；数据存本地 JSON 与 localStorage；只有主动拍照时才把图片发给已配置的视觉模型</td></tr>
+      <tr><td>可解释</td><td>每条结论都能指到依据</td><td>理由带「成分库 / 位置推断 / 法规限量」标签与真实排位</td></tr>
+      <tr><td>时延</td><td>不等待模型也能看到结论</td><td>规则结果先渲染，解释异步流式追加</td></tr>
+      <tr><td>可用性</td><td>没有 Key、没有网络也能用</td><td>未配置模型时整条链路降级为规则 + 本地模板，报告不空白</td></tr>
+      <tr><td>移动端</td><td>390px 宽可用，不出现横向滚动</td><td>单列布局 + 底部固定主操作；报告页结论不滚动即可见</td></tr>
+      <tr><td>合规</td><td>不构成医疗建议</td><td>页脚与报告底部固定声明；模型输出闸门拦截医疗用语</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================ 3 架构 ============================ -->
+<section class="chapter">
+  <div class="sec-kicker">Chapter 03</div>
+  <h1 class="sec">系统架构设计</h1>
+  <div class="sec-rule"></div>
+
+  <h2><span class="no">3.1</span>总体架构</h2>
+  <p>
+    三段式：<b>前端负责呈现与流式消费，后端负责规则与存储，AI 只作为被约束的能力接入</b>。
+    前端是主形态，后端不是业务中台，只是“解析器 + 规则表 + 模型代理 + 文件存储”。
+  </p>
+
+  <div class="arch">
+    <div class="row">
+      <div class="side">Client</div>
+      <div class="cells" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="cell jade"><b>Vue 3 前端</b><span>报告渲染 · 流式消费 · 档案切换</span></div>
+        <div class="cell jade"><b>设计系统</b><span>token · 位置尺 · 印章 · 三层信息</span></div>
+        <div class="cell jade"><b>本地缓存</b><span>localStorage：草稿、档案、历史</span></div>
+      </div>
+    </div>
+    <div class="arrow">↓ &nbsp; POST /api/analyze &nbsp;·&nbsp; POST /api/explain/stream（SSE）</div>
+    <div class="row">
+      <div class="side">Server</div>
+      <div class="cells" style="grid-template-columns:1fr 1fr 1fr 1fr">
+        <div class="cell"><b>解析器</b><span>切分 · 归一 · 截断</span></div>
+        <div class="cell"><b>规则引擎</b><span>排位 · 风险 · 法规 · 档案</span></div>
+        <div class="cell"><b>报告组装</b><span>结论 / 理由 / 序列 / 覆盖</span></div>
+        <div class="cell"><b>AI 接入层</b><span>流式 · 闸门 · 研究 Agent</span></div>
+      </div>
+    </div>
+    <div class="arrow">↓ &nbsp; 读取 / 写入 &nbsp;·&nbsp; OpenAI 兼容协议</div>
+    <div class="row">
+      <div class="side">Data &amp; AI</div>
+      <div class="cells" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="cell"><b>本地 JSON 存储</b><span>成分库 · 报告 · 研究任务 · 配置</span></div>
+        <div class="cell"><b>语言模型</b><span>可配置 base_url / model / key</span></div>
+        <div class="cell"><b>视觉模型</b><span>拍照识别成分表，独立配置</span></div>
+      </div>
+    </div>
+  </div>
+  <p class="tbl-cap">图 3-1　实测部署：前端 5173（Vite），后端 8082（Spring Boot），数据目录默认 <span class="m">~/.cosme/data</span>。</p>
+
+  <h2><span class="no">3.2</span>分层职责</h2>
+  <table>
+    <thead><tr><th style="width:16%">层</th><th style="width:26%">技术</th><th>职责与边界</th></tr></thead>
+    <tbody>
+      <tr><td>呈现层</td><td>Vue 3.4 + Vite 5</td><td>路由、报告三段式渲染、SSE 消费、档案重算的差异提示、移动端适配</td></tr>
+      <tr><td>接口层</td><td>Spring Boot 2.7.18</td><td>REST + SSE，参数校验，统一错误与降级；不含业务判断</td></tr>
+      <tr><td>规则层</td><td>Java 服务（AnalyzeService）</td><td>成分匹配、排位分档、风险分级、法规提示、档案重排</td></tr>
+      <tr><td>AI 层</td><td>ExplainService</td><td>构造事实、发起流式请求、闸门校验、断流重试、模板兜底</td></tr>
+      <tr><td>数据层</td><td>JSON 文件 + 原子写</td><td>成分库、报告、研究任务、AI 配置、反馈；单目录可迁移</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="no">3.3</span>一次解读的完整时序</h2>
+  <div class="steps">
+    <div class="step"><span class="i">01</span><div class="c"><b>切分与归一</b><span>按顿号、逗号、分号、换行、空格切分；去序号与括号注释；同名去重</span></div></div>
+    <div class="step"><span class="i">02</span><div class="c"><b>成分匹配</b><span>中文名 / 别名 / INCI / 英文名四路索引，精确匹配，不做模糊匹配（避免误判）</span></div></div>
+    <div class="step"><span class="i">03</span><div class="c"><b>排位分档</b><span>前 5 / 6–10 / 11 位之后；结合角色判断“概念添加”</span></div></div>
+    <div class="step"><span class="i">04</span><div class="c"><b>风险判定</b><span>致敏、刺激性、孕期禁忌、致痘、法规限量，与个人档案叠加</span></div></div>
+    <div class="step"><span class="i">05</span><div class="c"><b>组装报告</b><span>verdict / flags / sequence / matched / total 一次性返回，前端立刻可渲染</span></div></div>
+    <div class="step"><span class="i">06</span><div class="c"><b>流式解释（异步）</b><span>单独请求 SSE：事实 → 模型 → 闸门；通过则替换，不通过则回退模板</span></div></div>
+    <div class="step"><span class="i">07</span><div class="c"><b>按需深化</b><span>点击成分看详情并再次流式解释；未收录的成分可进入研究队列</span></div></div>
+  </div>
+
+  <h2><span class="no">3.4</span>四个关键设计决策</h2>
+  <table>
+    <thead><tr><th style="width:26%">决策</th><th style="width:34%">选择</th><th>代价与应对</th></tr></thead>
+    <tbody>
+      <tr><td><b>ADR-1</b> 结论由谁给</td><td>规则引擎判定，模型只解释</td><td>规则表要人工维护；换来可复现、可测试、可追责。测试见第 6 章</td></tr>
+      <tr><td><b>ADR-2</b> 解释要不要流式</td><td>流式，但必须可回退</td><td>流式天然会断。用 finish_reason + 句末标点判定断流，再走非流式重试与模板兜底</td></tr>
+      <tr><td><b>ADR-3</b> 数据怎么存</td><td>单机 JSON，原子写</td><td>不适合多用户并发；换来零运维、数据不出机、评委一条命令就能跑</td></tr>
+      <tr><td><b>ADR-4</b> 要不要向量 RAG</td><td>不做</td><td>90 条结构化数据上向量库是过度工程；改用名称索引 + 排位权重 + 同义词表，结论可解释</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <b>关于 ADR-4 的取舍：</b>评审表里 RAG 占 6%。我们评估后主动放弃，原因是成分库是小规模结构化数据，
+    向量召回带来的模糊匹配会污染风险判断（把“柠檬烯”召回到“柠檬酸”是灾难）。
+    我们用同义词表 + 中文二元组做检索，并把“为什么不用向量”写进文档 —— 这是一个有依据的工程判断，不是缺功能。
+  </div>
+</section>
+
+<!-- ============================ 4 AI 方案 ============================ -->
+<section class="chapter">
+  <div class="sec-kicker">Chapter 04</div>
+  <h1 class="sec">AI 技术方案</h1>
+  <div class="sec-rule"></div>
+
+  <p class="lead">
+    这一章回答三个问题：为什么这样选型、怎么接进来、怎么让它不出错。
+    核心判断只有一句：<b>让模型做它擅长的表达，不让它做它不擅长的判断。</b>
+  </p>
+
+  <h2><span class="no">4.1</span>选型理由</h2>
+
+  <h3>4.1.1 为什么不用“把成分表丢给大模型”</h3>
+  <p>这是最省事的做法，也是我们最先否掉的做法。端到端生成有四个致命问题：</p>
+  <table>
+    <thead><tr><th style="width:22%">问题</th><th>具体表现</th><th style="width:30%">我们的对策</th></tr></thead>
+    <tbody>
+      <tr><td><b>会编造</b></td><td>模型倾向补全“浓度约 5%”“添加量 0.1%”这类标签上没有的数字</td><td>结论由规则给；输出层直接禁止任何数字</td></tr>
+      <tr><td><b>不可复现</b></td><td>同一份成分表，两次回答的严重程度、措辞、甚至结论都可能不同</td><td>结论层完全确定；解释层允许措辞变化，但不允许改变结论</td></tr>
+      <tr><td><b>无法核对</b></td><td>“烟酰胺刺激性低”这类断言没有出处</td><td>每条理由绑定成分库条目或排位，界面上可见依据标签</td></tr>
+      <tr><td><b>会越界</b></td><td>顺口给出“可以治痘痘”“建议用处方药”</td><td>九个医疗用语硬拦截；prompt 里同时禁止</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.1.2 那为什么还需要模型</h3>
+  <p>
+    规则能算出结论，但算不出语气。把“柠檬烯 排位 13、敏感肌高风险、香精 12、羟苯甲酯 有限量”
+    这堆结构化事实写成一段人话，让读者知道“先避开哪个、哪些只是留意”，是模型的强项 ——
+    尤其是把三四个并列事实压缩成有主次的因果句。这部分工作我们试过模板，读起来像机器播报；
+    试过拼接，句子之间没有逻辑连接。模型在这个位置是合适的。
+  </p>
+  <div class="note">
+    <b>分工边界：</b>模型可以决定“先说哪个、怎么连接、用什么语气”；不能决定“严重程度、排位、是否限量、是否有风险”。
+    前者是表达，后者是事实。闸门就是这条边界的具体实现。
+  </div>
+
+  <h3>4.1.3 模型与接入方式</h3>
+  <table>
+    <thead><tr><th style="width:20%">项</th><th style="width:34%">选择</th><th>理由</th></tr></thead>
+    <tbody>
+      <tr><td>协议</td><td>OpenAI 兼容的 Chat Completions</td><td>国内主流服务商都兼容；换供应商只改三个配置项，不改代码</td></tr>
+      <tr><td>配置</td><td>后台填写 base_url / model / key</td><td>密钥不进仓库、不进前端；评委可用自己的 Key 复现</td></tr>
+      <tr><td>语言模型</td><td>可配置，默认流式 + 600 max_tokens</td><td>解释只有 2–4 句，600 足够；上限压低也降低了跑飞的概率</td></tr>
+      <tr><td>视觉模型</td><td>独立配置，可关闭</td><td>拍照识别是可选能力；没配就隐藏入口，不假装能用</td></tr>
+      <tr><td>无 Key 时</td><td>整链路降级</td><td>规则照跑，解释用本地模板，并明确标注“本地模板”而不是“AI 生成”</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="no">4.2</span>集成方式</h2>
+
+  <h3>4.2.1 流式协议：四个事件</h3>
+  <p>
+    解释走 <span class="m">POST /api/explain/stream</span>，返回 <span class="m">text/event-stream</span>。
+    没有用 <span class="m">EventSource</span>，因为需要 POST 带 JSON body 和中断控制，前端用
+    <span class="m">fetch + ReadableStream</span> 自己解析。事件只有四类：
+  </p>
+  <table>
+    <thead><tr><th style="width:14%">事件</th><th style="width:30%">字段</th><th>前端行为</th></tr></thead>
+    <tbody>
+      <tr><td><span class="m">step</span></td><td>key / text / state</td><td>渲染推理步骤条：读取规则结论 → 生成解释 → 数字与用语校验</td></tr>
+      <tr><td><span class="m">delta</span></td><td>text</td><td>追加到正文，光标跟随</td></tr>
+      <tr><td><span class="m">replace</span></td><td>text / source / reason</td><td>整段替换（重试成功或回退模板），并标注来源</td></tr>
+      <tr><td><span class="m">done</span></td><td>source / reason</td><td>收尾：<span class="m">llm</span> 表示模型输出，<span class="m">template</span> 表示本地模板</td></tr>
+    </tbody>
+  </table>
+  <p>
+    <b>为什么要有 replace：</b>流式的中间态是不可信的（可能只有半句）。我们的策略是——先让用户看到字在动，
+    同时在后台判断这段输出是否完整、是否违规；不完整就整段替换成重试结果，违规就整段替换成模板。
+    用户看到的是“解释晚了一秒”，而不是“一句被截断的话”。
+  </p>
+
+  <h3>4.2.2 Prompt 结构与上下文裁剪</h3>
+  <p>System 只有四条硬性要求，越短越不容易被忽略：</p>
+  <div class="box" style="font-size:9.2pt;line-height:1.8">
+    1. 只能使用事实里出现的信息，不得新增成分，不得推测任何浓度或含量。<br />
+    2. 禁止出现任何阿拉伯数字、百分号或「百分之」。<br />
+    3. 不得给出医疗建议，不得使用「治疗」「诊断」「处方」「疗效」等词。<br />
+    4. 不用 Markdown、不用列表、不加标题，直接输出句子；不要重复事实清单。
+  </div>
+  <p>
+    User 侧只放<b>裁剪后的事实</b>：结论等级、匹配到的成分与排位、命中的风险项（最多 3 条）、覆盖率。
+    <b>不放全文成分表</b>——放了模型就会逐条复述，既浪费 token，也更容易编造。
+    这是本方案在“上下文工程”上的主要取舍：给判断结果，不给原始物料。
+  </p>
+
+  <h2><span class="no">4.3</span>优化策略：四道工序把不确定性收回来</h2>
+
+  <h3>4.3.1 断流检测：不能把“半句话”当成成功</h3>
+  <p>
+    最早的做法是“收到第一个 delta 就算成功”，结果线上出现了以逗号结尾的句子。
+    现在的判定要求<b>两个条件同时成立</b>：
+  </p>
+  <ul>
+    <li>上游返回的 <span class="m">finish_reason</span> 是正常结束（<span class="m">stop</span>），而不是空值或长度截断；</li>
+    <li>输出以句末标点收尾：<span class="m">。</span><span class="m">！</span><span class="m">？</span><span class="m">…</span> 或右引号、右括号。</li>
+  </ul>
+  <p>
+    任一不满足，就判定为“上游提前结束”，先走<b>非流式重试一次</b>（<span class="m">completeChat</span>，
+    同样 600 max_tokens）；重试结果仍要过同样的判定与闸门；再不通过，就回退本地模板，
+    并把原因（“上游输出不完整”或缩短后的错误信息）显示在报告底部。
+  </p>
+
+  <h3>4.3.2 输出闸门：数字与医疗用语零容忍</h3>
+  <table>
+    <thead><tr><th style="width:26%">检查</th><th style="width:38%">规则</th><th>不通过时</th></tr></thead>
+    <tbody>
+      <tr><td>长度</td><td>20 ≤ 字数 ≤ 520</td><td>过短视为没说完，过长视为跑题</td></tr>
+      <tr><td>数字</td><td>拦截阿拉伯数字、全角数字、「百分之」、中文数字 + %；成分名与代号里的数字（1,2-戊二醇、二苯酮-3、维生素B5、SPF50）先剥离再检查</td><td>先尝试改写计数，改不了才回退模板</td></tr>
+      <tr><td>医疗用语</td><td>治疗 / 治愈 / 诊断 / 处方 / 根治 / 疗效 / 药效 / 药用 / 医美</td><td>回退模板，并点名违规词</td></tr>
+      <tr><td>断流</td><td>finish_reason + 句末标点</td><td>重试一次 → 仍失败则回退</td></tr>
+    </tbody>
+  </table>
+  <div class="note warn">
+    <b>“一个数字都不许有”是有代价的。</b>模型不能说“10 秒”“1 个成分”，甚至不能说“第 11 位”。
+    为了让解释依然有信息量，我们改用<b>相对表述</b>：前段 / 中段 / 后段、靠前 / 靠后、多数 / 少数。
+    这个约束反过来塑造了文案风格 —— 也正因为如此，数字只能来自规则层，读者看到的每个数字都可核对。
+  </div>
+
+  <p>
+    这套闸门最早有一个自相矛盾的地方，是在真实调用里暴露出来的：上下文把「成分总数」「第几位」「限量 2.0%」
+    原样喂给模型，prompt 又禁止输出数字 —— 模型照抄事实，就必然被自己的闸门拦下，用户看到的是“解释里出现了具体数字，已改用规则说明”。
+    现在的做法是从源头掐断：
+  </p>
+  <table>
+    <thead><tr><th style="width:22%">环节</th><th>做法</th></tr></thead>
+    <tbody>
+      <tr><td>事实层</td><td>计数一律写成中文（「第十二位」），限量值换成「有明确的法规限量要求」，致痘性只给等级（低 / 较低 / 中等 / 较高 / 高）</td></tr>
+      <tr><td>闸门</td><td>先把成分名里的数字（<span class="m">1,2-</span>、<span class="m">-3</span>）剥离再检查；含 <span class="m">%</span> 直接拦，不给豁免</td></tr>
+      <tr><td>改写</td><td>只差计数时，把「第 5 位」改写成「第五位」后重新校验，通过就保留模型原文，不退回模板</td></tr>
+      <tr><td>不改写</td><td>带百分号或剂量单位（<span class="m">2.0%</span>、<span class="m">0.5 克</span>）一律不改写 —— 那是在说浓度，直接回退模板</td></tr>
+    </tbody>
+  </table>
+  <p class="footnote">
+    改之前，模型写一句「5 个成分」就会被整段替换成模板；改后再跑同一份配方与成分详情，解释全部由模型生成、违规零次，
+    产品评测的输出护栏也 5/5 通过（记录见 <span class="m">docs/eval/评测记录-v1.md</span>）。
+    回退时给用户看的是「本地解释：这次回答没写完」，不是内部术语。
+  </p>
+
+  <h3>4.3.3 兜底模板：宁可朴素，不要空白</h3>
+  <p>
+    模板按结论等级与风险项拼装，读起来不惊艳，但信息完整：先说要避开什么，再说需要留意什么，
+    最后给一句边界提醒。界面上会标注“本地模板生成”，不冒充 AI。
+    这样即使模型服务完全不可用，报告仍然是完整可用的 —— 这是“离线可用”的技术含义。
+  </p>
+
+  <h3>4.3.4 覆盖率先行：不够就不下结论</h3>
+  <p>
+    当前端视图层发现 <span class="m">matched / total &lt; 0.5</span> 且规则结论为“可以放心”时，
+    会把结论降级为“信息不足”，并把未识别的成分作为虚线占位保留在原排位（不跳号）。
+    这条规则的目的是：<b>不要用一个漂亮的绿灯掩盖“我们没认出 10 个成分”这件事</b>。
+  </p>
+
+  <h2><span class="no">4.4</span>Agent 工作流：研究 Agent 怎么自己决定下一步</h2>
+  <p>
+    未收录成分的处理不是「一次模型调用」，而是一个会自己决定「要不要调模型、要不要重试、能不能入库」的 Agent。
+    它只做一件窄事 —— 把一个没见过的成分查清楚 —— 但这件事天然需要计划、工具和判断。
+  </p>
+
+  <h3>4.4.1 计划：五步，写在代码里，也写在界面上</h3>
+  <div class="steps">
+    <div class="step"><span class="i">01</span><div class="c"><b>normalize</b><span>归一化：去括号注释、去序号、全角转半角。「（日用）香精」→「香精」</span></div></div>
+    <div class="step"><span class="i">02</span><div class="c"><b>search_library</b><span>先查成分库（精确匹配）。命中就直接结束 —— 不花一次模型调用</span></div></div>
+    <div class="step"><span class="i">03</span><div class="c"><b>ask_model</b><span>按固定 Schema 让模型补全草稿：角色、作用、风险标签、限量、置信度</span></div></div>
+    <div class="step"><span class="i">04</span><div class="c"><b>infer_role / validate</b><span>角色缺失时用词根规则兜底（paraben→防腐、sulfate→表活）；然后校验字段</span></div></div>
+    <div class="step"><span class="i">05</span><div class="c"><b>置信度标注</b><span>≥ 0.7 记为高置信度；不够仍然收录，但标注低置信度并写明理由，管理等事后复核</span></div></div>
+  </div>
+
+  <h3>4.4.2 自主决策：四个分支，都能被测试</h3>
+  <table>
+    <thead><tr><th style="width:26%">观察到的结果</th><th style="width:30%">Agent 的决定</th><th>理由</th></tr></thead>
+    <tbody>
+      <tr><td>成分库已有（精确命中）</td><td>结束，不调用模型</td><td>已知的东西不需要重新研究，也避免模型改写已有条目</td></tr>
+      <tr><td>字段不合法</td><td>换一种写法再问一次（最多两次）</td><td>括号写法常常是模型没认出来的原因，换回原始写法往往能补全</td></tr>
+      <tr><td>角色缺失但词根可判断</td><td>用规则补角色，继续走</td><td>「-paraben」这类后缀是可靠信号，不必为此再调一次模型</td></tr>
+      <tr><td>置信度 &lt; 0.7</td><td>仍然收录，但打上「低置信度」标记并留下理由</td><td>不收录就永远认不出这个成分；收了才能让报告完整，人工随时可复核</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.4.3 轨迹：每一步都留痕</h3>
+  <p>
+    每次运行都会写一条 trace：第几步、调了哪个工具、参数是什么、观察到什么、耗时多少、成功还是失败。
+    管理台可以逐条展开，用户端只看到「正在研究哪几个成分」。下面这条是<b>真实运行</b>的记录
+    （模型 deepseek-v4.1-flash，输入一个虚构成分，模型自己决定先查了两次库）：
+  </p>
+  <div class="box" style="font-size:8.4pt;line-height:1.85">
+    <span class="m">01</span> normalize　　　　假想成分XYZ测试 → 无需改动　<span style="color:var(--moss)">ok</span>　1 ms<br />
+    <span class="m">02</span> search_library　 假想成分XYZ测试 → 库内未收录　<span style="color:var(--amber)">miss</span>　0 ms<br />
+    <span class="m">03</span> tool_call　　　　模型请求工具（1632 ms 的思考后）　<span style="color:var(--moss)">ok</span><br />
+    <span class="m">04</span> tool:search_library　{"name":"假想成分XYZ测试"} → 未收录　<span style="color:var(--moss)">ok</span>　1 ms<br />
+    <span class="m">05</span> tool_call　　　　模型再次请求工具　<span style="color:var(--moss)">ok</span><br />
+    <span class="m">06</span> tool:lookup_limit　{"name":"假想成分XYZ测试"} → 未收录　<span style="color:var(--moss)">ok</span>　0 ms<br />
+    <span class="m">07</span> ask_model　　　　假想成分XYZ测试 → 草稿 · 置信度 0.12　<span style="color:var(--moss)">ok</span>　5308 ms<br />
+    <span class="m">08</span> validate　　　　字段齐全，角色「功效」　<span style="color:var(--moss)">ok</span>　0 ms<br />
+    <span style="color:var(--ink3)">→ 结论：置信度 0.12 低于阈值 0.70，仍会收录并标注低置信度（虚构成分，模型自己也没把握，管理台可据此拒绝）</span>
+  </div>
+
+  <h3>4.4.4 自动收录：Agent 自己写库，但每一步都可追溯</h3>
+  <p>
+    Agent 字段校验通过后<b>直接写入成分库</b>，不需要人工点通过 —— 否则每遇到一个新成分，报告就会永远卡在
+    「还有成分没认出」。写入的条目标记为 <span class="m">source=ai</span>、<span class="m">status=pending</span>，
+    带置信度、模型名、依据原文与完整轨迹，管理台随时能复核、改字段或删除。
+  </p>
+  <p>
+    风险控制靠三件事，而不是靠人工闸门：<b>只有字段合法的草稿才收录</b>（名称/角色/作用缺一不可）；
+    <b>低置信度会被标记</b>并写明原因；<b>冲突不硬写</b> —— 库里已有同名但不是括号变体时，这条任务记为失败，
+    不会覆盖已有条目。三条都由 <span class="m">ResearchCommitService</span> 统一执行，自动收录与管理台手动通过走同一个入口。
+  </p>
+
+  <h3>4.4.5 工具调用与 MCP：让模型自己取证</h3>
+  <p>
+    上面五步里，第 3 步不是「一次性把事实塞给模型」，而是带工具的对话：模型可以先要求查一次库再作答。
+    暴露给它的三个工具都是只读的，参数与返回都受控（MCP 侧另有一个受令牌保护的写入口，见本节末尾）：
+  </p>
+  <table>
+    <thead><tr><th style="width:26%">工具</th><th style="width:34%">模型什么时候会调</th><th>返回</th></tr></thead>
+    <tbody>
+      <tr><td><span class="m">search_library</span></td><td>拿不准这个写法是不是库里已有成分的别名</td><td>是否已收录、标准名、角色</td></tr>
+      <tr><td><span class="m">lookup_limit</span></td><td>要写「限量」字段之前先核对</td><td>限量原文，或「没有限量记录」</td></tr>
+      <tr><td><span class="m">list_role_examples</span></td><td>拿不准该归到哪个角色</td><td>该角色下的若干示例成分</td></tr>
+    </tbody>
+  </table>
+  <p>
+    Agent 执行工具后把观察结果作为 <span class="m">tool</span> 消息回灌，再请模型继续；<b>最多两轮</b>，
+    防止模型在工具里绕圈。如果服务商不认 <span class="m">tools</span> 字段（返回 400 且报错提到 tool/function），
+    会自动去掉工具重试一次，并在轨迹里记下「退回确定性计划」—— 工具不被支持不应该让整条任务失败。
+  </p>
+  <p>
+    <b>实测（2026-11-12，deepseek-v4.1-flash）：</b>模型在一次真实运行里先调 <span class="m">search_library</span>、
+    再调 <span class="m">lookup_limit</span>，两次都拿到「未收录」之后才给出草稿，并把置信度压到 0.12。
+    这条轨迹同时证明了三件事：工具真的被模型主动调用、结果真的被回灌、没把握时会自己标注低置信度并留下理由。
+  </p>
+  <p>
+    同一套能力另外做成了一个 <b>MCP Server</b>（<span class="m">mcp/server.mjs</span>，零依赖，stdio JSON-RPC）：
+    三个只读工具开放给任意 MCP 客户端，Claude Desktop / Cursor 配一行 JSON 即可接入；另有一个受令牌保护、带限流的 <span class="m">submit_research</span> 写入口，让外部客户端也能把「没见过的成分」送进研究队列。
+    它和产品内 Agent 共用同一份成分库与同一条边界 —— 未收录时返回「不要编造」，而不是让模型自由发挥。
+  </p>
+  <p>
+    写入口是故意默认关着的：只有设置了 <span class="m">COSME_MCP_TOKEN</span> 才可用，令牌不对返回 401，
+    同一进程 10 分钟内最多 10 次（超出返回 429）；提交进去的查询走的是与产品完全相同的
+    「入队 → Agent 研究 → 自动收录」链路。<b>一个会烧模型额度的写接口，不应该默认对局域网开放。</b>
+  </p>
+
+  <div class="note">
+    <b>为什么这算 Agent 而不是「一个函数」：</b>它有自己的计划、会选工具、会根据观察结果改变下一步（命中就停、不合法就换写法、
+    没把握就交人），并且全过程可回放；工具既可以由模型临时决定调用，也可以由计划强制触发。
+    区别不在于用了多少模型，而在于<b>决策是不是数据驱动的、过程是不是可见的</b>。
+  </div>
+
+  <h2><span class="no">4.5</span>多模态：拍照识别链路</h2>
+  <div class="steps">
+    <div class="step"><span class="i">01</span><div class="c"><b>用户主动拍照 / 选图</b><span>未配置视觉模型时入口不显示</span></div></div>
+    <div class="step"><span class="i">02</span><div class="c"><b>发给视觉模型</b><span>要求只返回成分表文本，不解释、不补全</span></div></div>
+    <div class="step"><span class="i">03</span><div class="c"><b>回到同一条解析链路</b><span>识别结果进文本框，用户可改；后续与粘贴完全一致</span></div></div>
+    <div class="step"><span class="i">04</span><div class="c"><b>失败降级</b><span>识别不可用时提示改用粘贴，并保留“重试”“改用文本”两个动作</span></div></div>
+  </div>
+  <p>
+    <b>为什么不让视觉模型直接出结论：</b>识别错误会一路传导致结论错误。把图像识别限制在“转写文本”这一步，
+    用户能看到并纠正中间结果——这比一个看不见的错误链条可靠得多。
+  </p>
+
+  <h2><span class="no">4.6</span>AI 可控性：六道闸门</h2>
+  <table>
+    <thead><tr><th style="width:8%">#</th><th style="width:22%">闸门</th><th style="width:34%">拦什么</th><th>失败表现</th></tr></thead>
+    <tbody>
+      <tr><td class="num">G1</td><td>Prompt 硬约束</td><td>新增成分、推测浓度、医疗建议、Markdown</td><td>模型层概率下降，但不保证</td></tr>
+      <tr><td class="num">G2</td><td>事实白名单</td><td>上下文里没有的成分与数字</td><td>无中生有的内容失去依据</td></tr>
+      <tr><td class="num">G3</td><td>输出闸门</td><td>任何数字、百分号、九个医疗词、过长过短</td><td>整段替换为模板并标注原因</td></tr>
+      <tr><td class="num">G4</td><td>断流判定 + 重试</td><td>半句话、被截断的输出</td><td>重试一次，仍失败则回退</td></tr>
+      <tr><td class="num">G5</td><td>模板兜底</td><td>模型不可用 / 全部失败</td><td>永远有可读的解释，标注来源</td></tr>
+      <tr><td class="num">G6</td><td>覆盖率门槛</td><td>“认不全却给绿灯”</td><td>降级为“信息不足”，并说明原因</td></tr>
+    </tbody>
+  </table>
+  <p class="tbl-cap">表 4-1　六道闸门的顺序即代码顺序：G1/G2 在请求前，G3/G4 在响应后，G5 是最终兜底，G6 在前端视图层。</p>
+
+  <h2><span class="no">4.7</span>评测：可复现的结果</h2>
+  <p>
+    闸门、断流判定与 Agent 的决策逻辑都是纯函数，因此可以在无网络、无 Key 的情况下测试。仓库里有三个测试类：
+  </p>
+  <table>
+    <thead><tr><th style="width:30%">测试</th><th style="width:10%">方法数</th><th>覆盖</th></tr></thead>
+    <tbody>
+      <tr><td><span class="m">AnalyzeServiceTest</span></td><td class="num">9</td><td>概念添加的排位判断、孕期禁忌、未收录成分仍占位、中文名不做模糊匹配、风险计数按成分去重</td></tr>
+      <tr><td><span class="m">ExplainGuardTest</span></td><td class="num">12</td><td>4 类数字拦截、9 个医疗用语、长度边界、断流判定、代号豁免、中文数字改写</td></tr>
+      <tr><td><span class="m">ExplainFactsTest</span></td><td class="num">3</td><td>喂给模型的事实不含阿拉伯数字；没有排位/致痘性时不下发这两个字段</td></tr>
+      <tr><td><span class="m">AiSettingsTest</span></td><td class="num">3</td><td>功能块换地址时 Key 不跨域回退；空覆盖块回退总 API；同地址可继承 Key</td></tr>
+      <tr><td><span class="m">ResearchAgentTest</span></td><td class="num">13</td><td>命中库不调模型、括号归一、工具调用回灌、未知工具不崩、工具轮次上限、tools 不被支持时降级、低置信度仍可收录、词根补角色</td></tr>
+    </tbody>
+  </table>
+  <div class="box">
+    <b>实测输出（2026-11-17，本机 JDK 21 运行 Java 11 目标）：</b><br />
+    <span class="m">mvn -B test</span> → <span class="m">Tests run: 40, Failures: 0, Errors: 0, Skipped: 0</span> ·
+    <span class="m">BUILD SUCCESS</span><br />
+    <b>MCP 协议冒烟：</b><span class="m">node mcp/test-mcp.mjs</span> → <span class="m">10/10 通过</span>
+    （握手、工具清单、命中、未命中、限量、提交研究、未知方法）
+  </div>
+
+  <h3>4.7.1 产品级评测：22 条真实输入跑一遍</h3>
+  <p>
+    单元测试锁的是函数，锁不住“整条产品行为”。所以另有一套产品级评测：直接把一段真实成分表交给分析接口，
+    看识别、排位、档案联动与边界输入是否符合预期；再把结果交给前端同一份 <span class="m">reportView()</span> 渲染 ——
+    测到的是用户真正看到的结论，而不是接口里的原始字段。
+  </p>
+  <table>
+    <thead><tr><th style="width:20%">维度</th><th style="width:16%">结果</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>场景用例</td><td class="ok">21 / 21</td><td>常见品类、孕期与敏感肌档案对照、纯英文 INCI、括号变体、40 成分长表、160 成分截断、空输入、纯编号</td></tr>
+      <tr><td>输出护栏</td><td class="ok">5 / 5</td><td>真实模型跑 5 次（3 次报告解释 + 2 次成分详情），最终文本违规 0 次</td></tr>
+      <tr><td>可复现</td><td class="ok">21 / 21</td><td>同一输入连跑两次，成分数、命中数、结论、完整序列一致</td></tr>
+      <tr><td>已知问题</td><td class="num">1</td><td>「水杨酸辛酯」被包含匹配归到「水杨酸」——明知会错，单独记账，不混进通过率</td></tr>
+    </tbody>
+  </table>
+  <p class="footnote">
+    完整记录（每条用例的期望值、耗时、逐条结论）：<span class="m">docs/eval/评测记录-v1.md</span>；
+    重跑：<span class="m">node docs/eval/run-eval.mjs --write</span>，约 40 秒，其中真实模型调用约 20 秒。
+    评测不统计 token 与费用：接口不回传 usage，估出来的数字不可核对，所以不写。
+  </p>
+
+  <p>除单元测试外，开发期还用本地 mock 上游做过三种故障注入，验证整条流式链路：</p>
+  <table>
+    <thead><tr><th style="width:22%">注入</th><th style="width:38%">模拟</th><th>系统行为</th></tr></thead>
+    <tbody>
+      <tr><td>truncate</td><td>上游输出半句就断开连接</td><td class="ok">判定断流 → 非流式重试 → 重试成功，replace 为完整文本</td></tr>
+      <tr><td>retrybad</td><td>重试仍然半句</td><td class="ok">再次判定失败 → 回退模板，底部标注“上游输出不完整”</td></tr>
+      <tr><td>digits</td><td>输出里出现“浓度 0.1%”</td><td class="ok">闸门拦截 → 替换为模板，步骤条显示“输出闸门拦截”</td></tr>
+    </tbody>
+  </table>
+  <p class="footnote">
+    说明：故障注入用的 mock 上游是开发期脚本，不在提交的生产路径内；它验证的是“我们的判定与降级是否按预期工作”，
+    不代表任何具体供应商的稳定性。真实模型的稳定性取决于上游，未做长稳压测，见 6.3。
+  </p>
+
+  <h2><span class="no">4.8</span>成本与用量控制</h2>
+  <p>
+    这类工具很容易在成本上失控：每看一瓶都调一次模型、每次解释都把完整成分表塞进上下文、
+    失败了反复重试。我们的做法是把调用量压在“必要且唯一”上：
+  </p>
+  <table>
+    <thead><tr><th style="width:24%">控制点</th><th style="width:40%">做法</th><th>效果</th></tr></thead>
+    <tbody>
+      <tr><td>调用次数</td><td>一份报告只生成一次解释；切换档案会重新分析，但解释仍只请求一次</td><td>不因滚动、展开、重渲染而重复调用</td></tr>
+      <tr><td>输入长度</td><td>上下文只放结论、命中的风险项（≤3 条）、覆盖率，不放完整成分表</td><td>输入 token 与成分数量解耦：150 个成分也不会把上下文撑爆</td></tr>
+      <tr><td>输出长度</td><td><span class="m">max_tokens</span> 固定 600，prompt 要求 2–4 句</td><td>输出上限可预期，也降低跑飞概率</td></tr>
+      <tr><td>重试策略</td><td>断流时只做一次非流式重试，不再循环</td><td>最坏情况两次调用后必定收敛到模板</td></tr>
+      <tr><td>按需深化</td><td>成分详情的解释在点击时才请求</td><td>不看详情就不产生费用</td></tr>
+      <tr><td>零成本路径</td><td>未配置 Key 时不发起任何请求</td><td>评委本地复现不需要任何额度</td></tr>
+    </tbody>
+  </table>
+  <p>
+    研究队列同理：只有出现未收录成分时才入队，入队后也不是无限重试，而是单次研究 + 自动收录 + 事后可追溯。
+    换句话说，<b>模型花掉的每一分钱，都对应一次用户主动发起的、且不会重复的请求</b>。
+  </p>
+</section>
+
+<!-- ============================ 5 核心实现 ============================ -->
+<section class="chapter">
+  <div class="sec-kicker">Chapter 05</div>
+  <h1 class="sec">核心功能实现</h1>
+  <div class="sec-rule"></div>
+
+  <h2><span class="no">5.1</span>输入：把真实世界的脏数据变干净</h2>
+  <p>
+    真实成分表的格式非常乱：顿号、中文逗号、英文逗号、换行、空格混用；带“1.”“①”序号；
+    带括号注释“（又名 XX）”；同一成分重复出现；还有把“水”写成“去离子水”的。
+    解析器做四件事：
+  </p>
+  <ul>
+    <li><b>切分：</b>按顿号、逗号、分号、换行、连续空格切分，保留原始顺序；</li>
+    <li><b>清理：</b>去掉序号与首尾空白，括号内容单独保留为别名线索；</li>
+    <li><b>去重：</b>同名只保留第一次出现的位置（排位以第一次为准）；</li>
+    <li><b>限长：</b>超过 150 个成分时截断，并在报告里明确提示“只分析了前 150 个”。</li>
+  </ul>
+  <p>
+    输入框还会实时给出反馈：识别到几个成分、有没有可疑的空格缺失（整段没有分隔符时会提示“先检查一下分隔符”），
+    让用户在点“开始解读”之前就知道这次输入是否可用。
+  </p>
+
+  <h2><span class="no">5.2</span>规则引擎：结论是怎么算出来的</h2>
+  <table>
+    <thead><tr><th style="width:20%">维度</th><th style="width:44%">规则</th><th>输出</th></tr></thead>
+    <tbody>
+      <tr><td>排位分档</td><td>1–5 前段 / 6–10 中段 / 11 之后后段</td><td>位置标签、含量级描述</td></tr>
+      <tr><td>概念添加</td><td>功效成分排在后段，且不存在同功效的前段成分</td><td>“更像是概念添加”提示</td></tr>
+      <tr><td>致敏风险</td><td>香精、柠檬烯等香料致敏项 + 敏感肌档案</td><td>高 / 中风险，进入“建议避开”或“需要留意”</td></tr>
+      <tr><td>孕期禁忌</td><td>维 A 类（视黄醇等）、水杨酸高浓度等</td><td>孕期档案下直接提示回避</td></tr>
+      <tr><td>刺激性</td><td>表活类型、醇类、酸类与浓度相关字段</td><td>刺激性提示，附使用建议</td></tr>
+      <tr><td>法规限量</td><td>限用组分与最大允许浓度（成分库字段）</td><td>法规提示，标记为“信息”而非风险</td></tr>
+      <tr><td>未收录</td><td>不在成分库中的名称</td><td>保留排位，标为未识别，进入占位</td></tr>
+    </tbody>
+  </table>
+  <p><b>一个真实例子</b>（报告里的第一条理由）：</p>
+  <div class="box" style="font-size:9.4pt">
+    <b>柠檬烯 Limonene · 排位 13 / 14 · 敏感肌高风险</b><br />
+    规则命中：香料致敏项（成分库）+ 排位后段 + 档案含敏感肌 → 风险等级 high → 结论“建议避开”。<br />
+    <span style="color:var(--ink3)">模型只能说“它排在后段、含量很低，但致敏看的是有没有、不是多少”，不能提任何数字，也不能说“会过敏”。</span>
+  </div>
+  <p>
+    规则输出是一个结构化对象：结论等级、headline、summary、flags（最多 3 条进主线）、sequence（完整配方顺序）、
+    matched / total。前端不需要理解规则，只负责按三段式渲染。
+  </p>
+
+  <h2><span class="no">5.3</span>报告：结论 / 理由 / 证据 三层</h2>
+  <p>
+    报告页的第一屏只有三样东西：一句结论、三条理由、一组数字。其余（配方梯队、法规、成分详情）折叠在后面。
+    这个结构的目的是把“我该不该用”和“为什么”放在同一屏，而把“完整信息”留给愿意深挖的人。
+  </p>
+
+  <p><b>位置尺</b>是报告里唯一的图形，也是产品的视觉主张：它把“排位”变成可读的空间关系 ——
+    左端是水，右端是千分之几，红点落在真实的冲突位置上。</p>
+
+  <p><b>成分对比图</b>是第二张图：每个成分一根条，条长按相对排位（第 1 位最长），颜色是角色
+    （基质 / 功效 / 防腐 / 香精 / 表活 / 防晒），条尾的「避 / 慎」是与你档案的冲突。
+    图上方还有一条按角色汇总的构成条，一眼能看出这瓶是“水 + 保湿”还是“功效堆料 + 香精”。
+    它和梯队视图共用一张卡片，可以一键切换 —— 图表负责扫读，梯队负责逐个看。</p>
+  <div class="note">
+    <b>为什么条长不用真实浓度：</b>标签上根本没有浓度，画成百分比就是在编数据。
+    所以图例里写死一句话：「条长 = 相对排位，不是真实浓度」。这是本产品在可视化上的底线。
+  </div>
+
+  <div class="ruler">
+    <div class="zone"><span>前段 · 溶剂与水</span><span>中段 · 功效</span><span>后段 · 微量</span></div>
+    <div class="scale">
+      <i class="tk major" style="left:0%;height:4mm"></i>
+      <i class="tk" style="left:7.69%;height:2.4mm"></i>
+      <i class="tk" style="left:15.38%;height:2.4mm"></i>
+      <i class="tk" style="left:23.08%;height:2.4mm"></i>
+      <i class="tk" style="left:30.77%;height:2.4mm"></i>
+      <i class="tk major" style="left:38.46%;height:4mm"></i>
+      <i class="tk" style="left:46.15%;height:2.4mm"></i>
+      <i class="tk" style="left:53.85%;height:2.4mm"></i>
+      <i class="tk" style="left:61.54%;height:2.4mm"></i>
+      <i class="tk" style="left:69.23%;height:2.4mm"></i>
+      <i class="tk major" style="left:76.92%;height:4mm"></i>
+      <i class="tk" style="left:84.62%;height:2.4mm"></i>
+      <i class="tk" style="left:92.31%;height:2.4mm"></i>
+      <i class="tk major" style="left:100%;height:4mm"></i>
+      <span class="mk g" style="left:10.7%"><b>甘油 2</b><i></i></span>
+      <span class="mk a" style="left:67.9%"><b>烟酰胺 10</b><i></i></span>
+      <span class="mk v" style="left:89.3%"><b>柠檬烯 13</b><i></i></span>
+    </div>
+  </div>
+  <p class="tbl-cap">图 5-1　位置尺：刻度数 = 成分数，标记点位置 = 真实排位；红点代表与当前档案冲突的成分。</p>
+
+  <p><b>证据层</b>是第三层，也是最该被核对的一层：每条 AI 收录的成分，库里都多留了三样东西 ——
+    依据原句、模型自评置信度、研究时间与所用模型。打开成分详情就接在「别名」后面，像脚注一样短，
+    但足够回答“这句话凭什么”。</p>
+  <div class="figure">
+    <div class="frame" style="padding:0;overflow:hidden">
+      <img src="../screenshots/app-evidence.png" alt="成分详情里的依据区：依据原句、模型自评置信度、模型与研究时间"
+           style="display:block;width:82%;margin:2mm auto" />
+    </div>
+    <div class="cap">图 5-2　成分详情的「依据」区：依据原句 + 自评置信度 + 模型与时间，全部来自库里已有字段，不额外生成。</div>
+  </div>
+  <div class="note">
+    <b>为什么非要写“模型自评”：</b>这个数字没有校准过，也不是概率意义上的准确率。只写“置信度 82%”会让人把它当结论用，
+    所以界面上固定写「模型自评置信度」，并强制与「待人工复核」出现在一起 —— 两者缺一，就会变成另一种编造。
+  </div>
+
+  <h2><span class="no">5.4</span>流式渲染：前端怎么接</h2>
+  <p>
+    前端只有一个组件负责解释文本：<span class="m">StreamText.vue</span>。它接收 url 与 payload，
+    自己建立 fetch 流，按四个事件类型更新状态：
+  </p>
+  <ul>
+    <li><b>步骤条：</b>把 step 事件渲染成三个 chip（读取规则结论 / 生成解释 / 数字与用语校验），完成变绿、进行中带脉冲；</li>
+    <li><b>增量文本：</b>delta 追加，末尾渲染一个光标，视觉上“正在写”；</li>
+    <li><b>整段替换：</b>replace 直接覆盖并切换来源标注；</li>
+    <li><b>收尾：</b>done 停止光标，若 source 是 template，则在下方显示一行小字说明原因。</li>
+  </ul>
+  <p>
+    中断控制用 <span class="m">AbortController</span>：切换档案或离开页面时立即取消请求，避免旧解释覆盖新结论。
+    这也是流式应用最容易出的 bug —— 我们在档案重算时专门处理了竞态（用请求序号丢弃过期响应）。
+  </p>
+
+  <h2><span class="no">5.5</span>研究队列：边研究边收录，研究完再给结论</h2>
+  <p>
+    成分库只有几十条时，未收录是常态。处理方式不是让模型“猜”，也不是前端弹个错误，而是把未收录成分送进研究队列，
+    由研究 Agent 跑一遍完整流程（计划与决策见 4.4），<b>把结果直接补进成分库，再让报告重新分析</b>：
+  </p>
+  <div class="steps">
+    <div class="step"><span class="i">01</span><div class="c"><b>入队</b><span>报告里出现的未收录成分写入研究任务（含原始片段与上下文）</span></div></div>
+    <div class="step"><span class="i">02</span><div class="c"><b>Agent 研究</b><span>归一化 → 查库 → 按需调模型 → 补角色 → 校验，全过程写 trace</span></div></div>
+    <div class="step"><span class="i">03</span><div class="c"><b>自动收录</b><span>字段合法就直接写入成分库（source=ai / status=pending），低置信度带标记与理由</span></div></div>
+    <div class="step"><span class="i">04</span><div class="c"><b>报告重算</b><span>前端每 6 秒轮询一次；新成分一旦入库，报告立刻按完整配方重算</span></div></div>
+    <div class="step"><span class="i">05</span><div class="c"><b>可追溯 / 可复核</b><span>管理台能看到每条任务的轨迹、置信度与依据，可改可删</span></div></div>
+  </div>
+
+  <h3>5.5.1 研究没跑完，就不给结论</h3>
+  <p>
+    只要还有成分在队列里（<span class="m">researchQueued + researchRunning &gt; 0</span>），报告页<b>不显示任何结论</b>，
+    只显示一个进度页：已就绪 X / Y、正在查哪几个成分、一条进度条，以及一句「完成后自动显示结论，不用刷新」。
+    结论区、理由区、配方梯队、分享与打印按钮全部隐藏 —— 少一个成分就下的结论，不如不给。
+  </p>
+  <p>
+    研究完成后前端把报告整份替换掉，用户看到的是一次「从进度到结论」的切换，而不是先给一个半成品再改口。
+    如果研究 API 没配置（<span class="m">researchEnabled=false</span>），进度页不会出现，报告照常显示并注明未收录成分未处理。
+  </p>
+  <div class="note">
+    <b>这条设计要解决的是信任问题：</b>同一个成分表，研究前和研究后可能是两个结论。与其先给结论再偷偷改，
+    不如明确告诉用户「还在查，查完再告诉你」。收录的每一条都带来源与置信度，管理台随时可以推翻。
+  </div>
+
+  <h2><span class="no">5.6</span>分享、历史与隐私</h2>
+  <table>
+    <thead><tr><th style="width:18%">能力</th><th style="width:40%">实现</th><th>隐私处理</th></tr></thead>
+    <tbody>
+      <tr><td>分享链接</td><td>报告快照存本地，生成不可猜测短链</td><td>链接含档案信息，明确提示“拿到链接的人都能看”；30 天清理</td></tr>
+      <tr><td>历史报告</td><td>浏览器 localStorage，按时间倒序</td><td>不上传；换设备或清缓存即丢失（明确写在页面里）</td></tr>
+      <tr><td>账号</td><td>无账号体系</td><td>无需注册即可用；也意味着没有服务端用户画像</td></tr>
+      <tr><td>管理台</td><td>本地口令 + 仅本机访问</td><td>口令只在本机存储；不对外暴露管理接口</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="no">5.7</span>前端设计系统（为什么它也算工程）</h2>
+  <p>
+    前端不是把数据摆上去就完事。为了让“结论层 / 理由层 / 证据层”这个信息结构稳定落地，
+    我们建了一套很小的设计系统：三色（纸 / 铜 / 墨绿）、八级字号、四个签名组件（透镜标、印章、位置尺、标本卡）。
+    规则只有一条：<b>出现第九种字号或第四个断点，视为 bug</b>。
+  </p>
+  <p>
+    这样做的直接收益是评审所说的“UI 设计与视觉表现”可被检验：换一个页面，颜色、字阶、间距不用重新决策；
+    而间接收益是交互一致 —— 报告页的“印章”与首页的“位置尺”是同一套语言，用户不会觉得是两个产品。
+  </p>
+</section>
+
+<!-- ============================ 6 测试与部署 ============================ -->
+<section class="chapter">
+  <div class="sec-kicker">Chapter 06</div>
+  <h1 class="sec">测试与部署</h1>
+  <div class="sec-rule"></div>
+
+  <h2><span class="no">6.1</span>测试策略：先测“会变坏的地方”</h2>
+  <p>
+    我们没有追求覆盖率数字，而是先问：这个项目里哪些地方一旦被改坏，用户会直接受损？
+    答案是三处：<b>规则结论</b>、<b>输出闸门</b>、<b>断流降级</b>。这三处都有可自动化的判定条件，因此都写了测试。
+  </p>
+  <table>
+    <thead><tr><th style="width:18%">层次</th><th style="width:26%">手段</th><th style="width:14%">可重复</th><th>覆盖内容</th></tr></thead>
+    <tbody>
+      <tr><td>单元</td><td>JUnit 5（<span class="m">mvn test</span>）</td><td class="ok">是</td><td>规则引擎 7 个用例；输出闸门与断流判定 6 个用例 / 40 条断言</td></tr>
+      <tr><td>链路</td><td>本地 mock 上游 + 故障注入</td><td class="ok">是</td><td>断流重试、重试失败回退、数字拦截三条路径</td></tr>
+      <tr><td>接口</td><td>curl / 浏览器手动</td><td>部分</td><td>分析、流式解释、分享、成分库、管理接口</td></tr>
+      <tr><td>验收</td><td>人工走查（桌面 + 390px）</td><td>否</td><td>空输入、超长、乱格式、拍照失败、断网、无 Key</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="no">6.2</span>实测结果</h2>
+  <div class="box">
+    <b>命令：</b><span class="m">cd server &amp;&amp; mvn -B test</span><br />
+    <b>结果：</b><span class="m">Tests run: 40, Failures: 0, Errors: 0, Skipped: 0</span> ·
+    <span class="m">BUILD SUCCESS</span>（2026-11-17）<br />
+    <b>明细：</b><span class="m">AnalyzeServiceTest</span> 9 个 · <span class="m">ExplainGuardTest</span> 12 个 ·
+    <span class="m">ExplainFactsTest</span> 3 个 · <span class="m">AiSettingsTest</span> 3 个 · <span class="m">ResearchAgentTest</span> 13 个
+  </div>
+
+  <table>
+    <thead><tr><th style="width:26%">被锁住的行为</th><th style="width:10%">用例</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>概念添加的排位判断</td><td class="num">含于 9</td><td>功效成分排在后段且前面没有同类 → 提示“概念添加”</td></tr>
+      <tr><td>孕期禁忌</td><td class="num">含于 9</td><td>维 A 类在孕期档案下必须被标出</td></tr>
+      <tr><td>未收录成分仍占位</td><td class="num">含于 9</td><td>未识别不丢排位，序号不跳号</td></tr>
+      <tr><td>中文名不做模糊匹配</td><td class="num">含于 9</td><td>“柠檬烯”不能被匹配成“柠檬酸”</td></tr>
+      <tr><td>风险计数按成分去重</td><td class="num">含于 9</td><td>同一成分命中孕期与敏感肌两条规则，标题只能说“一个成分”</td></tr>
+      <tr><td>4 类数字拦截</td><td class="num">12 用例</td><td>阿拉伯数字、全角数字、百分之、中文数字 + %；成分名与 B5、SPF50 这类代号豁免</td></tr>
+      <tr><td>9 个医疗用语拦截</td><td class="num">18 断言</td><td>逐个命中，且拦截原因要点名违规词</td></tr>
+      <tr><td>长度边界</td><td class="num">3 断言</td><td>空 / 过短 / 过长</td></tr>
+      <tr><td>断流判定</td><td class="num">9 断言</td><td>句号、问号、感叹号、省略号、右引号算结束；逗号、无标点、空值不算</td></tr>
+      <tr><td>事实层不含数字</td><td class="num">3 用例</td><td>喂给模型的计数、排位、限量都是中文或“有/没有”；缺排位时不写排位</td></tr>
+      <tr><td>Key 不跨地址回退</td><td class="num">3 用例</td><td>功能块换了服务地址却没填 Key 时，不能拿总 API 的 Key 去请求</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="no">6.3</span>已验证与未验证</h2>
+  <table>
+    <thead><tr><th style="width:50%">已验证</th><th>未验证</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>
+          · 规则结论的正确性（单元测试）<br />
+          · 输出闸门的四项检查（单元测试）<br />
+          · Agent 的决策分支与工具循环（单元测试：命中不调模型、非法重试、低置信度仍收录并标注、工具结果回灌、工具轮次上限、tools 降级）<br />
+          · MCP Server 的协议实现（<span class="m">node mcp/test-mcp.mjs</span> 10 项：握手、工具清单、命中、未命中、限量、提交研究、未知方法）<br />
+          · 产品级评测 21 个场景 + 5 次真实模型护栏调用（<span class="m">node docs/eval/run-eval.mjs</span>）<br />
+          · 断流判定与三级降级（单元 + 故障注入）<br />
+          · 分析接口与流式接口的实际返回<br />
+          · 桌面 1440 / 移动 390 两个宽度的渲染<br />
+          · 无 Key 时的完整降级路径
+        </td>
+        <td>
+          · 真实模型的长稳压测（只做了单次验收与故障注入）<br />
+          · 上游模型更换后的输出质量漂移<br />
+          · 非中文标签（日文、英文成分表）<br />
+          · iOS Safari 真机（只在桌面 Chromium 与移动尺寸模拟下验证）<br />
+          · 多用户并发（当前是单机 JSON 存储）<br />
+          · 浏览器级自动化回归（无 E2E 框架）
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="note warn">
+    <b>为什么把这些写出来：</b>答辩时最容易被问“你这个稳定吗”。与其说“很稳定”，不如直接给出边界：
+    哪些有测试、哪些靠人工、哪些没做。上面每一条都能对应到具体命令或页面，不靠印象。
+  </div>
+
+  <h2><span class="no">6.4</span>部署与运行</h2>
+  <table>
+    <thead><tr><th style="width:22%">项</th><th>要求 / 说明</th></tr></thead>
+    <tbody>
+      <tr><td>前端</td><td>Node 18+（实测 22）；<span class="m">npm install &amp;&amp; npm run dev</span>，默认 5173</td></tr>
+      <tr><td>后端</td><td>JDK 11+（实测 JDK 21，编译目标 11）；<span class="m">mvn spring-boot:run</span>，默认 8082</td></tr>
+      <tr><td>一键启动</td><td><span class="m">start-demo.bat</span> 同时拉起前后端；<span class="m">start-server.bat jar</span> 可改为 jar 方式</td></tr>
+      <tr><td>跨域</td><td>开发期由 Vite 代理 <span class="m">/api → 127.0.0.1:8082</span>，避免后端开 CORS</td></tr>
+      <tr><td>数据目录</td><td>默认 <span class="m">~/.cosme/data</span>，可用 <span class="m">-Dcosme.data.dir</span> 或环境变量 <span class="m">COSME_DATA_DIR</span> 覆盖；启动日志会打印实际目录</td></tr>
+      <tr><td>密钥</td><td>不在仓库、不在前端；由管理台写入本地配置文件，仅本机可读</td></tr>
+      <tr><td>构建产物</td><td>CSS 104 KB（gzip 20.4 KB）· JS 264 KB（gzip 93.7 KB）· 单页应用，无外部 CDN 依赖</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="no">6.5</span>性能：用户等的是哪一段</h2>
+  <p>
+    一次解读的时间其实分成三段：<b>规则计算（毫秒级）</b>、<b>前端最小停留（约 0.7 秒）</b>、<b>模型首字（取决于上游）</b>。
+    第二段是刻意的：后端通常几十毫秒就返回，如果让它瞬间出结论，用户会觉得“它根本没看”。
+    所以我们让步骤条至少走完一圈，让“规则在跑”这件事被看见 —— 这是交互设计，不是性能问题。
+  </p>
+  <p>
+    真正影响体验的是第三段。因为结论先渲染、解释异步追加，用户永远不会盯着空白页等模型：
+    最坏情况是结论已经在屏幕上，解释位置显示模板兜底。
+  </p>
+</section>
+
+<!-- ============================ 7 创新点 ============================ -->
+<section class="chapter">
+  <div class="sec-kicker">Chapter 07</div>
+  <h1 class="sec">创新点说明</h1>
+  <div class="sec-rule"></div>
+
+  <h2><span class="no">7.1</span>技术创新点</h2>
+
+  <h3>T1　把“生成”关进“表达”的笼子：规则判结论、模型讲人话</h3>
+  <p>
+    主流做法是把成分表交给大模型，让它一次输出结论与解释。我们把两者拆开：结论由确定性规则产出，
+    模型只在“已有事实”上做语言组织。带来的直接结果是<b>可复现</b>（同一输入结论恒定）、
+    <b>可测试</b>（结论层可以单元测试）、<b>可追责</b>（错了能定位到规则还是模型）。
+    这不是“用了 AI”，而是“知道 AI 该用在哪一段”。
+  </p>
+
+  <h3>T2　流式解释的“断流检测 + 三级降级”</h3>
+  <p>
+    流式输出最容易被忽略的失败是“半句话当成功”。我们要求 <span class="m">finish_reason</span> 正常
+    <b>且</b> 以句末标点收尾才算完整；否则走“非流式重试一次 → 仍失败则模板兜底”，并把原因显示给用户。
+    这条链路有专门的故障注入验证（截断、重试仍截断、输出含数字）。
+  </p>
+
+  <h3>T3　“无数字”排版：用相对量词替代浓度</h3>
+  <p>
+    输出闸门禁止任何数字与百分号，看似激进，实际逼出了一套更准确的表达：前段 / 中段 / 后段、
+    靠前 / 靠后、多数 / 少数。因为标签本身就不告诉消费者浓度，任何具体数字都只能是编的。
+    <b>不写数字不是能力缺失，而是对信息边界的尊重。</b>
+  </p>
+
+  <h3>T4　覆盖率先行：认不出就不下结论</h3>
+  <p>
+    当归档里的成分识别率低于 50% 且规则结论为“可以放心”时，系统主动降级为“信息不足”，
+    未识别成分以虚线占位保留原排位。绝大多数同类工具会把未知项直接忽略，从而给出一个错误的绿灯；
+    我们选择让“不知道”可见。
+  </p>
+
+  <h3>T5　位置尺：把“排位即含量”变成可读图形</h3>
+  <p>
+    法规的排位规则是公开知识，但从来没有被画出来。位置尺把 1–N 的排位映射到一条有刻度的轴上，
+    前 / 中 / 后三段分区，冲突项以红点落在真实位置。它同时用于首页讲原理、报告页标冲突、
+    设计系统做规范示例 —— 一个组件，三种用途。
+  </p>
+
+  <h3>T6　研究 Agent：把“要不要调模型”也变成可测试的决策</h3>
+  <p>
+    大多数“Agent”只是把模型调用包一层循环。这里相反：<b>调不调模型是 Agent 判断出来的结果，不是流程规定</b>。
+    命中成分库就直接结束（省一次调用、也避免模型改写已有条目）；需要核实时模型可以自己请求查库 / 查限量；字段不合法就换一种写法重问；
+    角色缺失先用词根规则补；置信度不够就交给人。每个分支都有单测，每一步都写进可回放的 trace，
+    而写库这一步永远在人的点击之后。
+  </p>
+
+  <h2><span class="no">7.2</span>应用创新点</h2>
+
+  <h3>A1　个体化重排：同一瓶东西，结论随人而变</h3>
+  <p>
+    切换“敏感肌”或“孕期”，同一份成分表的结论、理由、颜色都会变，并且界面会明确告诉你“哪一条变了、为什么变”。
+    这把“成分表解读”从一次性查询变成了可交互的决策工具。
+  </p>
+
+  <h3>A2　自动扩库：Agent 自己收录，但每一步都可追溯</h3>
+  <p>
+    未收录成分进入研究队列，Agent 跑完直接写入成分库并触发重算 —— 但每条都带来源、置信度、依据原文与完整轨迹，
+    管理台随时可以复核、修改或删除。自动收录解决的是「永远认不出新成分」的死循环，可追溯解决的是「收错了怎么办」。
+  </p>
+
+  <h3>A3　隐私优先的本地化：无账号、不出机</h3>
+  <p>
+    没有账号体系，没有服务端用户画像；成分表与档案存在本机，历史存在浏览器。
+    只有用户主动拍照时，图片才会发给已配置的视觉模型。这让产品可以被敏感肌、孕期人群放心使用。
+  </p>
+
+  <h2><span class="no">7.3</span>与同类方案的对比</h2>
+  <table>
+    <thead><tr><th style="width:18%">维度</th><th style="width:22%">博主测评</th><th style="width:22%">通用大模型</th><th style="width:18%">成分 App</th><th>成分镜</th></tr></thead>
+    <tbody>
+      <tr><td>结论来源</td><td>个人经验</td><td>模型生成</td><td>平台打分</td><td class="ok">规则引擎（可测试）</td></tr>
+      <tr><td>可核对性</td><td>低</td><td>低（无出处）</td><td>中（有成分表）</td><td class="ok">每条理由带依据与排位</td></tr>
+      <tr><td>个体化</td><td>偶尔</td><td>需要用户重复描述</td><td>弱</td><td class="ok">档案切换即时重算</td></tr>
+      <tr><td>数字可信度</td><td>—</td><td class="no">可能编造浓度</td><td>部分准确</td><td class="ok">模型端禁止任何数字</td></tr>
+      <tr><td>未知成分</td><td>忽略</td><td>编一个解释</td><td>显示未知</td><td class="ok">占位不跳号，覆盖率不足即降级</td></tr>
+      <tr><td>医疗边界</td><td>不保证</td><td class="no">常越界</td><td>一般</td><td class="ok">九个医疗用语硬拦截</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================ 8 总结 ============================ -->
+<section class="chapter">
+  <div class="sec-kicker">Chapter 08</div>
+  <h1 class="sec">总结与展望</h1>
+  <div class="sec-rule"></div>
+
+  <h2><span class="no">8.1</span>做成了什么</h2>
+  <p>
+    成分镜完成了一条完整链路：粘贴或拍照 → 解析 → 规则判结论 → 个体化重排 → 模型写解释 →
+    闸门校验 → 三段式报告 → 分享 / 历史 / 成分库。在没有模型 Key、没有网络的情况下，
+    除了“解释的措辞”，其余功能全部可用。
+  </p>
+  <p>
+    更重要的是，我们把“AI 可能出错”这件事做成了产品的一部分：结论不靠模型、数字不靠模型、
+    未知不隐藏、失败有兜底、原因看得见。用户看到的不是“AI 说的”，而是“规则算的，AI 讲明白的”。
+  </p>
+
+  <h2><span class="no">8.2</span>局限</h2>
+  <table>
+    <thead><tr><th style="width:26%">局限</th><th>影响</th><th style="width:30%">如果继续做</th></tr></thead>
+    <tbody>
+      <tr><td>成分库只有几十条</td><td>长尾成分经常未收录，覆盖率不足会频繁触发降级</td><td>扩充到千级并用研究队列持续补录</td></tr>
+      <tr><td>只支持中文标签</td><td>日文、英文成分表无法直接使用</td><td>INCI 名称索引已具备，需补英文解析与同义词</td></tr>
+      <tr><td>单机 JSON 存储</td><td>不适合多人同时使用，也无法做云端历史</td><td>换成嵌入式数据库或服务端存储</td></tr>
+      <tr><td>规则表靠人工维护</td><td>新法规、新成分需要人工更新</td><td>建立法规条目版本化与变更提醒</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="no">8.3</span>下一步</h2>
+  <ol>
+    <li><b>工具化（Function Calling / MCP）：</b>把“查成分”“查限量”“提交研究”做成模型可调用的工具，
+      让解释阶段可以按需取证，而不是一次性拿到全部事实。</li>
+    <li><b>研究队列的 Agent 化：</b>从“单条补全”升级为“自己发现缺什么、分批研究、带证据提交”，
+      但人工复核的角色从「入库闸门」变成「事后审计」。</li>
+    <li><b>端侧能力：</b>用浏览器端小模型做初步分类，减少对上游的依赖，也让隐私叙事更彻底。</li>
+    <li><b>可评测性：</b>建立标注集，持续统计“结论与皮肤科医生判断的一致率”“解释被闸门拦截的比例”，
+      把现在的“设计过的可控”变成“被数据证明的可控”。</li>
+  </ol>
+
+  <div class="note good" style="margin-top:6mm">
+    <b>一句话总结：</b>我们做的不是一个“会聊成分的机器人”，而是一个“结论可核对、来源可追溯、认不出会明说”的成分解读工具。
+    AI 在其中负责它最擅长的部分 —— 把事实讲成人话。
+  </div>
+</section>
+
+<!-- ============================ 附录 ============================ -->
+<section class="chapter">
+  <div class="sec-kicker">Appendix</div>
+  <h1 class="sec">附录</h1>
+  <div class="sec-rule"></div>
+
+  <h2><span class="no">A</span>主要接口一览</h2>
+  <table>
+    <thead><tr><th style="width:30%">接口</th><th style="width:10%">方法</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><span class="m">/api/health</span></td><td>GET</td><td>健康检查</td></tr>
+      <tr><td><span class="m">/api/version</span></td><td>GET</td><td>版本、规则库与成分库版本、库容量</td></tr>
+      <tr><td><span class="m">/api/config</span></td><td>GET</td><td>前端可见的配置：是否启用视觉能力等</td></tr>
+      <tr><td><span class="m">/api/samples</span></td><td>GET</td><td>示例配方（用于无实物演示）</td></tr>
+      <tr><td><span class="m">/api/ingredients</span></td><td>GET</td><td>成分库列表（含角色、风险、限量等字段）</td></tr>
+      <tr><td><span class="m">/api/analyze</span></td><td>POST</td><td>核心接口：成分表 + 档案 → 报告</td></tr>
+      <tr><td><span class="m">/api/explain/stream</span></td><td>POST</td><td>报告解释（SSE）</td></tr>
+      <tr><td><span class="m">/api/explain/ingredient/stream</span></td><td>POST</td><td>单个成分的深度解释（SSE）</td></tr>
+      <tr><td><span class="m">/api/reports/{id}</span></td><td>GET</td><td>分享短链读取只读报告</td></tr>
+      <tr><td><span class="m">/api/feedback</span></td><td>POST</td><td>用户反馈</td></tr>
+      <tr><td><span class="m">/api/admin/**</span></td><td>—</td><td>管理台：模型配置、视觉配置、成分维护、研究任务、报告与反馈</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="no">B</span>成分库字段（节选）</h2>
+  <table>
+    <thead><tr><th style="width:22%">字段</th><th style="width:14%">类型</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td><span class="m">name</span> / <span class="m">aliases</span></td><td>string / array</td><td>中文名与别名、INCI、英文名，用于四路索引</td></tr>
+      <tr><td><span class="m">role</span></td><td>enum</td><td>功效 / 防腐 / 香精 / 防晒 / 表活 / 基质</td></tr>
+      <tr><td><span class="m">function</span></td><td>string</td><td>一句话作用（报告与成分库共用文案）</td></tr>
+      <tr><td><span class="m">sensitive</span> / <span class="m">preg</span></td><td>enum</td><td>敏感肌与孕期风险等级（avoid / caution / safe）</td></tr>
+      <tr><td><span class="m">irrit</span> / <span class="m">comedo</span></td><td>enum / 0–5</td><td>刺激性、致痘性评分</td></tr>
+      <tr><td><span class="m">limit</span></td><td>string</td><td>法规限量描述（如“限用，最高 X%”）</td></tr>
+      <tr><td><span class="m">note</span></td><td>string</td><td>使用提示（如“高浓度可能刺痛”）</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="no">C</span>术语</h2>
+  <table>
+    <thead><tr><th style="width:24%">术语</th><th>本文含义</th></tr></thead>
+    <tbody>
+      <tr><td>排位</td><td>成分在标签中出现的顺序，法规要求按加入量降序</td></tr>
+      <tr><td>覆盖率</td><td>识别出的成分数 ÷ 成分总数</td></tr>
+      <tr><td>闸门</td><td>对模型输出做强制检查的代码，不通过即整段替换</td></tr>
+      <tr><td>断流</td><td>上游在句子未结束时结束输出（未返回正常结束标记）</td></tr>
+      <tr><td>兜底 / 模板</td><td>不依赖模型的本地解释文案，保证报告永不空白</td></tr>
+      <tr><td>研究队列</td><td>未收录成分的后台补全任务，自动收录后入库并标注 AI 来源，管理台可事后复核</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note" style="margin-top:8mm">
+    <b>文档说明：</b>本文档所有代码路径、接口、测试结果均对应仓库当前提交（v1.0.0，规则库 2026.10）。
+    文中提到的 mock 上游脚本、故障注入与截图脚本位于开发目录，不参与生产运行。
+  </div>
+</section>
+
+</body>
+</html>
