@@ -3,6 +3,16 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
+  build: {
+    // 把框架单独拆出来：业务代码改动时，Vue 那份 chunk 仍可命中浏览器缓存
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vue: ['vue']
+        }
+      }
+    }
+  },
   server: {
     // 监听局域网：手机扫同一 Wi-Fi 打开 http://<电脑IP>:5173 就能现场拍成分表
     host: true,

@@ -1,12 +1,8 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import AboutView from './components/AboutView.vue'
-import AdminView from './components/AdminView.vue'
-import HistoryView from './components/HistoryView.vue'
-import IngredientsView from './components/IngredientsView.vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import IntakePanel from './components/IntakePanel.vue'
-import MethodView from './components/MethodView.vue'
 import NotFoundView from './components/NotFoundView.vue'
+import PageSkeleton from './components/PageSkeleton.vue'
 import ProfilePanel from './components/ProfilePanel.vue'
 import ReportView from './components/ReportView.vue'
 import Ruler from './components/Ruler.vue'
@@ -14,6 +10,21 @@ import { getJSON, postJSON } from './lib/http.js'
 import { ingredientTokens, inspectInput, profileLabel, splitByWhitespace } from './lib/text.js'
 import { buildDelta, buildReportText, reportView } from './lib/report.js'
 import { clearHistory, loadHistory, removeHistory, upsertHistory } from './lib/history.js'
+import { createRecognition, recognitionErrorText, recognitionSupported } from './lib/speech.js'
+
+/**
+ * 路由级组件按需加载：管理台、成分库、方法、关于、历史都不进首屏。
+ * 首屏只需要输入页 + 报告页，其余页面第一次点进去时才下载对应 chunk。
+ */
+function page(loader) {
+  return defineAsyncComponent({ loader, loadingComponent: PageSkeleton, delay: 120 })
+}
+
+const AboutView = page(() => import('./components/AboutView.vue'))
+const AdminView = page(() => import('./components/AdminView.vue'))
+const HistoryView = page(() => import('./components/HistoryView.vue'))
+const IngredientsView = page(() => import('./components/IngredientsView.vue'))
+const MethodView = page(() => import('./components/MethodView.vue'))
 
 const STEPS = ['读取成分表', '匹配成分知识库', '运行法规与个体化规则', '生成报告']
 const STORAGE_KEY = 'cosme:state:v1'
@@ -84,6 +95,11 @@ const photo = ref(null)
 const photoNote = ref('')
 const photoError = ref(false)
 const fileInput = ref(null)
+
+/* 语音输入：不支持就整块隐藏，不做一个点了没反应的按钮 */
+const voiceSupported = ref(false)
+const listening = ref(false)
+let recognition = null
 
 const tokens = computed(() => ingredientTokens(text.value))
 const issue = computed(() => inspectInput(text.value, tokens.value))
@@ -608,6 +624,7 @@ function invalidate() {
   clearTimeout(reTimer)
   stopTimers()
   cancelVision()
+  stopListening()
   loading.value = false
   phase.value = 0
 }
@@ -706,6 +723,70 @@ async function pasteFromClipboard() {
     showToast('已从剪贴板粘贴')
   } catch {
     showToast('浏览器不允许读取剪贴板，点输入框后按 Ctrl+V / 长按粘贴')
+  }
+}
+
+/* ----------------------------- 语音输入 ----------------------------- */
+
+function stopListening() {
+  if (recognition) {
+    try {
+      recognition.abort()
+    } catch {
+      /* 已经结束 */
+    }
+    recognition = null
+  }
+  listening.value = false
+}
+
+/** 口述结果并到现有成分表：已有内容时补顿号，句末标点去掉，避免切分出一堆空 token */
+function appendVoiceText(transcript) {
+  const clean = String(transcript || '').replace(/[。；;，,]+$/g, '').trim()
+  if (!clean) return
+  const current = text.value.trim()
+  if (!current) {
+    text.value = clean
+    return
+  }
+  const sep = /[、，,；;｜|\n]$/.test(current) ? '' : '、'
+  text.value = `${current}${sep}${clean}`
+}
+
+function toggleVoice() {
+  if (listening.value) {
+    stopListening()
+    return
+  }
+  if (!voiceSupported.value) {
+    showToast('这个浏览器不支持语音输入，直接粘贴即可')
+    return
+  }
+  stopListening()
+  recognition = createRecognition({
+    lang: 'zh-CN',
+    onResult: appendVoiceText,
+    onError: (code) => {
+      const message = recognitionErrorText(code)
+      if (message) showToast(message)
+    },
+    onEnd: () => {
+      listening.value = false
+      recognition = null
+    }
+  })
+  if (!recognition) {
+    showToast('这个浏览器不支持语音输入，直接粘贴即可')
+    return
+  }
+  try {
+    recognition.start()
+    listening.value = true
+    showToast('请说出成分名，说完会自动停')
+  } catch {
+    listening.value = false
+    recognition = null
+    showToast('麦克风没能启动，直接粘贴即可')
   }
 }
 
@@ -963,6 +1044,7 @@ function onKeydown(event) {
 }
 
 onMounted(async () => {
+  voiceSupported.value = recognitionSupported()
   restore()
   historyItems.value = loadHistory()
   await loadMeta()
@@ -984,6 +1066,7 @@ onBeforeUnmount(() => {
   clearTimeout(saveTimer)
   clearTimeout(toastTimer)
   stopTimers()
+  stopListening()
 })
 </script>
 
@@ -1083,6 +1166,8 @@ onBeforeUnmount(() => {
           :photo="photo"
           :photo-note="photoNote"
           :photo-error="photoError"
+          :voice-supported="voiceSupported"
+          :listening="listening"
           @update:model-value="onTextUpdate"
           @update:product-name="productName = $event"
           @clear="clearText"
@@ -1092,6 +1177,7 @@ onBeforeUnmount(() => {
           @sample="useSample"
           @remove-photo="removePhoto"
           @use-text="useTextInstead"
+          @voice="toggleVoice"
         />
 
         <aside class="side">

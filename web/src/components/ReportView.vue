@@ -10,6 +10,7 @@ import { profileLabel } from '../lib/text.js'
 import { reportView } from '../lib/report.js'
 import { formatDateTime } from '../lib/format.js'
 import { getJSON } from '../lib/http.js'
+import { speak, stopSpeaking, synthesisSupported } from '../lib/speech.js'
 
 const props = defineProps({
   data: { type: Object, required: true },
@@ -86,7 +87,10 @@ watch(
   },
   { immediate: true }
 )
-onBeforeUnmount(() => window.clearInterval(elapsedTimer))
+onBeforeUnmount(() => {
+  window.clearInterval(elapsedTimer)
+  if (speaking.value) stopSpeakingNow()
+})
 
 const progressWidth = computed(() => {
   const total = Math.max(1, Number(props.data?.total) || 0)
@@ -182,6 +186,44 @@ const reduced =
   typeof window.matchMedia === 'function' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+/* 朗读结论：用浏览器自带的 TTS，不上传音频；不支持就隐藏入口 */
+const canSpeak = ref(synthesisSupported())
+const speaking = ref(false)
+let stopSpeak = null
+
+function stopSpeakingNow() {
+  if (stopSpeak) {
+    try {
+      stopSpeak()
+    } catch {
+      /* 忽略 */
+    }
+    stopSpeak = null
+  }
+  stopSpeaking()
+  speaking.value = false
+}
+
+function toggleSpeak() {
+  if (speaking.value) {
+    stopSpeakingNow()
+    return
+  }
+  const content = [view.value.headline, view.value.summary].filter(Boolean).join('。')
+  stopSpeak = speak(content, {
+    onEnd: () => {
+      speaking.value = false
+      stopSpeak = null
+    }
+  })
+  if (stopSpeak) speaking.value = true
+}
+
+/* 报告或档案一变，正在读的那段就过期了，先停掉 */
+watch(explainKey, () => {
+  if (speaking.value) stopSpeakingNow()
+})
+
 function jump(id) {
   const el = document.getElementById(id)
   if (!el) return
@@ -267,6 +309,15 @@ onMounted(async () => {
           </button>
           <button type="button" class="bar-btn" @click="emit('share')">分享</button>
           <button type="button" class="bar-btn" @click="emit('copy')">复制结论</button>
+          <button
+            v-if="canSpeak"
+            type="button"
+            class="bar-btn"
+            :aria-pressed="speaking"
+            @click="toggleSpeak"
+          >
+            {{ speaking ? '停止朗读' : '朗读' }}
+          </button>
           <button type="button" class="bar-btn hide-sm" @click="emit('print')">打印</button>
           <button type="button" class="bar-btn" @click="emit('back')">修改成分表</button>
         </div>

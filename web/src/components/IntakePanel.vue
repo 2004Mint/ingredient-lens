@@ -12,7 +12,9 @@ const props = defineProps({
   recognizing: { type: Boolean, default: false },
   photo: { type: Object, default: null },
   photoNote: { type: String, default: '' },
-  photoError: { type: Boolean, default: false }
+  photoError: { type: Boolean, default: false },
+  voiceSupported: { type: Boolean, default: false },
+  listening: { type: Boolean, default: false }
 })
 
 defineEmits([
@@ -24,7 +26,8 @@ defineEmits([
   'fix-space',
   'sample',
   'remove-photo',
-  'use-text'
+  'use-text',
+  'voice'
 ])
 
 const charCount = computed(() => props.modelValue.replace(/\s/g, '').length)
@@ -53,6 +56,24 @@ function sampleTitle(name) {
             <path d="M11 4.5h4" />
           </svg>
           粘贴
+        </button>
+
+        <button
+          v-if="voiceSupported"
+          type="button"
+          class="tool"
+          :class="{ listening }"
+          :disabled="recognizing || loading"
+          :aria-pressed="listening"
+          :title="listening ? '正在听，说完会自动停' : '用麦克风说出成分表'"
+          @click="$emit('voice')"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="9" y="3.5" width="6" height="11" rx="3" />
+            <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" />
+            <path d="M12 18v2.5M8.5 20.5h7" />
+          </svg>
+          {{ listening ? '在听…' : '语音输入' }}
         </button>
 
         <button
@@ -280,6 +301,23 @@ function sampleTitle(name) {
 }
 
 .tool.accent:hover:not(:disabled) { background: #DBEBE4; border-color: var(--accent); }
+
+/* 正在听：用颜色和轻微呼吸表示「麦克风开着」，不弹额外的浮层 */
+.tool.listening {
+  border-color: var(--danger-line);
+  background: #FDF3F0;
+  color: var(--danger);
+}
+
+.tool.listening svg { animation: mic-pulse 1.1s ease-in-out infinite; }
+
+@keyframes mic-pulse {
+  50% { opacity: .4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool.listening svg { animation: none; }
+}
 
 .tool.quiet { border-color: transparent; background: transparent; }
 
