@@ -65,13 +65,18 @@ const unknownNames = computed(() => {
   return list.map((item) => (item && typeof item === 'object' ? item.name || '' : String(item))).filter(Boolean)
 })
 
+// 「还有几个没查完」以本次报告里真正没解析出来的成分为准。
+// 服务端的 queued/running 只统计这一轮新入队的，上一轮还在跑的那条不在里面，
+// 于是出现过「有 2 个不在库里」却列了 3 行的自相矛盾。
+const pendingCount = computed(() => Math.max(researchQueued.value, unknownNames.value.length))
+
 /**
  * 研究还没跑完时，先不给结论：只显示进度。
  * 研究 API 没配置时不算「研究中」，否则页面会永远卡在进度页。
  */
 const researching = computed(() => {
   if (props.data?.researchEnabled === false) return false
-  return researchQueued.value > 0
+  return pendingCount.value > 0
 })
 
 /* 等了几秒：让用户看到页面是活的，而不是一张静止的图 */
@@ -94,7 +99,7 @@ onBeforeUnmount(() => {
 
 const progressWidth = computed(() => {
   const total = Math.max(1, Number(props.data?.total) || 0)
-  const done = Math.max(0, total - researchQueued.value - researchReview.value)
+  const done = Math.max(0, total - pendingCount.value - researchReview.value)
   return Math.max(4, Math.min(100, Math.round((done / total) * 100)))
 })
 const researchEnabled = computed(() => props.data.researchEnabled !== false)
@@ -266,13 +271,19 @@ function openIngredient(name, context = {}) {
   }
   merged.name = clean
   detail.value = {
-    item: item || {
-      name: clean,
-      role: merged.role || '',
-      cat: merged.cat || '',
-      function: merged.fn || merged.comment || '',
-      aliases: []
-    },
+    // 点开的是「CI 77891」这类别名时，标题保留用户看到的名字，
+    // 标准名与其余别名交给详情卡的「别名」一栏，别把标题悄悄换成「二氧化钛」。
+    item: item
+      ? { ...item, name: clean }
+      : {
+          name: clean,
+          role: merged.role || '',
+          cat: merged.cat || '',
+          function: merged.fn || merged.comment || '',
+          aliases: []
+        },
+    // 成分库里有没有这条记录：没有就不能说「没有特别的风险」，那是两回事
+    known: !!item,
     context: merged
   }
 }
@@ -348,17 +359,17 @@ onMounted(async () => {
       <p class="eyebrow">Agent 正在补全成分库</p>
       <h1 class="rh serif">正在把这瓶的成分查清楚</h1>
       <p class="rsub">
-        有 {{ researchQueued }} 个成分不在成分库里。Agent 正在逐个查证并自动收录，
+        有 {{ pendingCount }} 个成分不在成分库里。Agent 正在逐个查证并自动收录，
         全部完成之前先不给结论 —— 少一个成分就下的结论，不如不给。
       </p>
 
-      <div class="rbar" role="progressbar" :aria-valuenow="view.total - researchQueued" :aria-valuemin="0" :aria-valuemax="view.total">
+      <div class="rbar" role="progressbar" :aria-valuenow="view.total - pendingCount" :aria-valuemin="0" :aria-valuemax="view.total">
         <i :style="{ width: progressWidth + '%' }"></i>
       </div>
       <div class="rmeta">
-        <span><b>{{ view.total - researchQueued }}</b> / {{ view.total }} 已就绪</span>
-        <span v-if="researchQueued" class="pending">
-          <i class="ring"></i>{{ researchQueued }} 个研究中
+        <span><b>{{ view.total - pendingCount }}</b> / {{ view.total }} 已就绪</span>
+        <span v-if="pendingCount" class="pending">
+          <i class="ring"></i>{{ pendingCount }} 个研究中
         </span>
         <span class="elapsed">已等待 {{ elapsed }}s</span>
         <span class="auto">完成后自动显示结论，不用刷新</span>

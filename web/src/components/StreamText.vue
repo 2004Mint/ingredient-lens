@@ -29,6 +29,15 @@ let hasDelta = false
 // 页面不能停在一句话中间还装作没事——那半句话会被当成完整结论读。
 let settled = false
 
+/* 回退原因是给用户看的一句话，不是内部错误码：
+   「解释里带了具体数值」这类原因，步骤条已经写过了，脚注不再重复一遍。 */
+function footText(reason) {
+  const why = String(reason || '').trim()
+  if (!why) return '本地解释'
+  if (why.startsWith('解释')) return '以上为依据规则与成分库的说明'
+  return `本地解释：${why}`
+}
+
 function start() {
   if (streaming.value) return
   text.value = props.fallback || ''
@@ -76,7 +85,7 @@ function handle(evt) {
     if (evt.source === 'llm') {
       notice.value = evt.reason || '已重新生成完整解释'
     } else {
-      notice.value = evt.reason ? `本地解释：${evt.reason}` : '本地解释'
+      notice.value = footText(evt.reason)
     }
     return
   }
@@ -86,7 +95,7 @@ function handle(evt) {
     streaming.value = false
     if (!notice.value) {
       if (evt.source === 'template') {
-        notice.value = evt.reason ? `本地解释：${evt.reason}` : '本地解释'
+        notice.value = footText(evt.reason)
       } else if (evt.reason) {
         notice.value = evt.reason
       }

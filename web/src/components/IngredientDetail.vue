@@ -13,7 +13,11 @@ let previousFocus = null
 
 const item = computed(() => props.detail.item || {})
 const context = computed(() => props.detail.context || {})
-const aliases = computed(() => (item.value.aliases || []).filter(Boolean))
+// 成分库里没有这条记录时，下面所有「没有风险」「暂无限量」都不能当成结论说出口
+const known = computed(() => props.detail.known !== false)
+const aliases = computed(() =>
+  (item.value.aliases || []).filter((a) => a && a !== item.value.name)
+)
 const researched = computed(() => !!(item.value.researched || context.value.ai))
 
 /* 证据字段：AI 收录时库里有依据原句、模型自评置信度与时间，这里只做展示 */
@@ -173,6 +177,7 @@ onBeforeUnmount(() => {
             <span v-if="item.role" class="id-chip">{{ item.role }}</span>
             <span v-if="item.cat" class="id-chip">{{ item.cat }}</span>
             <span v-if="researched" class="id-ai">AI 深度研究</span>
+            <span v-if="!known" class="id-unknown">成分库未收录</span>
           </div>
           <div v-if="evidenceChips.length" class="id-evidence">
             <span v-for="chip in evidenceChips" :key="chip" class="id-evidence-chip">{{ chip }}</span>
@@ -199,7 +204,10 @@ onBeforeUnmount(() => {
         </section>
         <section v-else class="id-section">
           <h3>风险与注意</h3>
-          <p class="id-muted">标签信息里没有特别的风险标注。</p>
+          <p v-if="!known" class="id-muted">
+            这个成分还没被成分库收录，所以没有可核对的限量和风险数据；这里只列出它在配方中的位置。
+          </p>
+          <p v-else class="id-muted">标签信息里没有特别的风险标注。</p>
         </section>
 
         <section v-if="rankText || comment" class="id-section id-context">
@@ -293,6 +301,7 @@ onBeforeUnmount(() => {
 .id-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .id-chip { padding: 2px 7px; border: 1px solid #E8E1D4; border-radius: 4px; background: #fff; color: var(--ink2); font-size: 10px; }
 .id-ai { padding: 2px 7px; border-radius: 4px; background: #EEF3F8; color: #3C6788; font-size: 10px; }
+.id-unknown { padding: 2px 7px; border-radius: 4px; background: #FBF3DF; color: #7A5A12; font-size: 10px; }
 
 .id-evidence { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
 .id-evidence-chip {
