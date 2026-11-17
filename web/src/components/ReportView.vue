@@ -72,10 +72,12 @@ const pendingCount = computed(() => Math.max(researchQueued.value, unknownNames.
 
 /**
  * 研究还没跑完时，先不给结论：只显示进度。
- * 研究 API 没配置时不算「研究中」，否则页面会永远卡在进度页。
+ * 研究 API 没配置、或者这一轮根本没有任务在跑（例如自动评测带 research:false）时，
+ * 不能因为「还有未收录成分」就把结论挡住 —— 那样报告会永远停在进度页。
  */
 const researching = computed(() => {
   if (props.data?.researchEnabled === false) return false
+  if (!researchQueued.value) return false
   return pendingCount.value > 0
 })
 
