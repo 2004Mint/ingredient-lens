@@ -746,21 +746,22 @@
 
   <h2><span class="no">4.7</span>评测：可复现的结果</h2>
   <p>
-    闸门、断流判定与 Agent 的决策逻辑都是纯函数，因此可以在无网络、无 Key 的情况下测试。仓库里有五个测试类：
+    闸门、断流判定与 Agent 的决策逻辑都是纯函数，因此可以在无网络、无 Key 的情况下测试。仓库里有六个测试类：
   </p>
   <table>
     <thead><tr><th style="width:30%">测试</th><th style="width:10%">方法数</th><th>覆盖</th></tr></thead>
     <tbody>
-      <tr><td><span class="m">AnalyzeServiceTest</span></td><td class="num">9</td><td>概念添加的排位判断、孕期禁忌、未收录成分仍占位、中文名不做模糊匹配、风险计数按成分去重</td></tr>
-      <tr><td><span class="m">ExplainGuardTest</span></td><td class="num">12</td><td>4 类数字拦截、9 个医疗用语、长度边界、断流判定、代号豁免、中文数字改写</td></tr>
+      <tr><td><span class="m">AnalyzeServiceTest</span></td><td class="num">12</td><td>概念添加的排位判断、孕期禁忌、未收录成分仍占位、中文名不做模糊匹配、风险计数按成分去重、着色剂编号只认精确、酯类不降级成母体</td></tr>
+      <tr><td><span class="m">ExplainGuardTest</span></td><td class="num">13</td><td>4 类数字拦截、9 个医疗用语、长度边界、断流判定、代号与着色剂编号豁免、中文数字改写</td></tr>
       <tr><td><span class="m">ExplainFactsTest</span></td><td class="num">3</td><td>喂给模型的事实不含阿拉伯数字；没有排位/致痘性时不下发这两个字段</td></tr>
       <tr><td><span class="m">AiSettingsTest</span></td><td class="num">3</td><td>功能块换地址时 Key 不跨域回退；空覆盖块回退总 API；同地址可继承 Key</td></tr>
       <tr><td><span class="m">ResearchAgentTest</span></td><td class="num">13</td><td>命中库不调模型、括号归一、工具调用回灌、未知工具不崩、工具轮次上限、tools 不被支持时降级、低置信度仍可收录、词根补角色</td></tr>
+      <tr><td><span class="m">ResearchCommitServiceTest</span></td><td class="num">4</td><td>研究结论命中已有成分时并成别名（CI 77891 → 二氧化钛）；编号不同（CI 77491 / CI 77492）与相近名称一律拒绝合并</td></tr>
     </tbody>
   </table>
   <div class="box">
     <b>实测输出（2026-11-17，本机 JDK 21 运行 Java 11 目标）：</b><br />
-    <span class="m">mvn -B test</span> → <span class="m">Tests run: 40, Failures: 0, Errors: 0, Skipped: 0</span> ·
+    <span class="m">mvn -B test</span> → <span class="m">Tests run: 48, Failures: 0, Errors: 0, Skipped: 0</span> ·
     <span class="m">BUILD SUCCESS</span><br />
     <b>MCP 协议冒烟：</b><span class="m">node mcp/test-mcp.mjs</span> → <span class="m">10/10 通过</span>
     （握手、工具清单、命中、未命中、限量、提交研究、未知方法）
@@ -775,10 +776,10 @@
   <table>
     <thead><tr><th style="width:20%">维度</th><th style="width:16%">结果</th><th>说明</th></tr></thead>
     <tbody>
-      <tr><td>场景用例</td><td class="ok">21 / 21</td><td>常见品类、孕期与敏感肌档案对照、纯英文 INCI、括号变体、40 成分长表、160 成分截断、空输入、纯编号</td></tr>
+      <tr><td>场景用例</td><td class="ok">22 / 22</td><td>常见品类、孕期与敏感肌档案对照、纯英文 INCI、括号变体、40 成分长表、160 成分截断、空输入、纯编号</td></tr>
       <tr><td>输出护栏</td><td class="ok">5 / 5</td><td>真实模型跑 5 次（3 次报告解释 + 2 次成分详情），最终文本违规 0 次</td></tr>
-      <tr><td>可复现</td><td class="ok">21 / 21</td><td>同一输入连跑两次，成分数、命中数、结论、完整序列一致</td></tr>
-      <tr><td>已知问题</td><td class="num">1</td><td>「水杨酸辛酯」被包含匹配归到「水杨酸」——明知会错，单独记账，不混进通过率</td></tr>
+      <tr><td>可复现</td><td class="ok">22 / 22</td><td>同一输入连跑两次，成分数、命中数、结论、完整序列一致</td></tr>
+      <tr><td>已知问题</td><td class="ok">0</td><td>原先「水杨酸辛酯被归到水杨酸」的已知问题已修复（改成「名称+括号注释」才匹配），并转成回归用例 A22</td></tr>
     </tbody>
   </table>
   <p class="footnote">
@@ -1051,7 +1052,7 @@
           · 输出闸门的四项检查（单元测试）<br />
           · Agent 的决策分支与工具循环（单元测试：命中不调模型、非法重试、低置信度仍收录并标注、工具结果回灌、工具轮次上限、tools 降级）<br />
           · MCP Server 的协议实现（<span class="m">node mcp/test-mcp.mjs</span> 10 项：握手、工具清单、命中、未命中、限量、提交研究、未知方法）<br />
-          · 产品级评测 21 个场景 + 5 次真实模型护栏调用（<span class="m">node docs/eval/run-eval.mjs</span>）<br />
+          · 产品级评测 22 个场景 + 5 次真实模型护栏调用（<span class="m">node docs/eval/run-eval.mjs</span>）<br />
           · 断流判定与三级降级（单元 + 故障注入）<br />
           · 分析接口与流式接口的实际返回<br />
           · 桌面 1440 / 移动 390 两个宽度的渲染<br />
