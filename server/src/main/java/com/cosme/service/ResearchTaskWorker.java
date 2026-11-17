@@ -56,9 +56,13 @@ public class ResearchTaskWorker {
                 System.out.println("[研究队列] 自动收录 " + task.query + " → " + name
                         + "（置信度 " + run.confidence + "）");
             } catch (Exception e) {
+                // 草稿和库里已有的成分打架（同名、编号对不上），属于「需要人看一眼」，
+                // 不该记成失败：失败会进报告顶部变成一条红字，用户既看不懂也做不了什么。
+                // 转人工复核后，草稿与轨迹都留着，管理台可以改一行就通过。
                 store.recordTrace(task.id, run.plan, run.trace, run.reason);
-                store.fail(task.id, "自动收录失败：" + e.getMessage());
-                System.err.println("[研究队列] 收录失败 " + task.query + "：" + e.getMessage());
+                store.markReview(task.id, run.draft, run.confidence, run.model, run.evidence,
+                        "草稿与成分库冲突：" + e.getMessage(), run.plan, run.trace);
+                System.err.println("[研究队列] 转人工复核 " + task.query + "：" + e.getMessage());
             }
             return;
         }

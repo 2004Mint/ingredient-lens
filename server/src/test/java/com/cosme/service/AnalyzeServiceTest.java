@@ -145,9 +145,11 @@ class AnalyzeServiceTest {
         assertNotNull(repository.match("CI 77891"));
         assertEquals("二氧化钛", repository.match("CI 77891").path("n").asText());
 
-        // 但只差一位的编号是**另一种**颜料，不能靠包含匹配/编辑距离蒙上来
-        assertNull(repository.match("CI 77892"));
-        assertNull(repository.match("CI 77491"));
+        // 只差一位的编号是**另一种**颜料：77491 是氧化铁红，77492 是氧化铁黄，
+        // 不能靠包含匹配或编辑距离互相顶替
+        assertEquals("氧化铁红", repository.match("CI 77491").path("n").asText());
+        assertEquals("氧化铁黄", repository.match("CI 77492").path("n").asText());
+        assertNull(repository.match("CI 77493"));
     }
 
     @Test

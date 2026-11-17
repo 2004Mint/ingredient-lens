@@ -447,9 +447,9 @@ onMounted(async () => {
           <p v-if="researchReview" class="vnote review">
             {{ researchReview }} 个成分已有研究草稿，还没写进成分库 —— 到管理台确认后会参与下一次分析。
           </p>
-          <p v-if="researchFailed" class="vnote research-fail">
-            {{ researchFailed }} 个成分这次没研究成功<template v-if="failedReason">（{{ failedReason }}）</template>。
-            点「立即刷新」会重新排队；连续失败的可以稍后再来。
+          <p v-if="researchFailed" class="vnote research-pending">
+            {{ researchFailed }} 个成分还没查到资料，先按「未收录」处理，后台会自动再试。
+            <button type="button" class="vnote-link" @click="emit('refresh-research')">立即重试</button>
           </p>
         </div>
 
@@ -1032,7 +1032,7 @@ onMounted(async () => {
 .research-status { display: grid; gap: 6px; }
 .vnote.research { color: #3C6788; border-color: #D8E3EC; background: #F7FAFC; }
 .vnote.review { color: var(--amber, #8A5A12); border-color: var(--warn-line, #E8D8B4); background: #FCF8EE; }
-.vnote.research-fail { color: #8A4B3F; border-color: #EED9D2; background: #FCF7F4; }
+.vnote.research-pending { color: var(--ink3); border-color: #E9E2D3; background: #FAF7EF; }
 .vnote-link {
   border: 0;
   background: transparent;
