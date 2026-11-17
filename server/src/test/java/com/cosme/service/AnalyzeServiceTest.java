@@ -140,6 +140,34 @@ class AnalyzeServiceTest {
     }
 
     @Test
+    void colorIndexMatchesExactlyOrNotAtAll() {
+        // CI 77891 是二氧化钛的着色剂编号，库里以别名收录，点开详情要能拿到作用与风险
+        assertNotNull(repository.match("CI 77891"));
+        assertEquals("二氧化钛", repository.match("CI 77891").path("n").asText());
+
+        // 但只差一位的编号是**另一种**颜料，不能靠包含匹配/编辑距离蒙上来
+        assertNull(repository.match("CI 77892"));
+        assertNull(repository.match("CI 77491"));
+    }
+
+    @Test
+    void derivativeNamesAreNotDowngradedToTheirParent() {
+        // 酯、醇、酸是不同物质：名字里带着「生育酚」「硬脂酸」不等于就是它们
+        assertNull(repository.match("生育酚乙酸酯"));
+        assertNull(repository.match("辛基十二醇硬脂酰氧基硬脂酸酯"));
+        // 括号注释仍然能匹配（第 2 步就处理掉了）
+        assertNotNull(repository.match("烟酰胺（Niacinamide）"));
+    }
+
+    @Test
+    void stripsPercentFromToken() {
+        Map<String, Object> report = service.analyze("水、甘油 99%", profile("normal", false, false));
+        List<Map<String, Object>> sequence = list(report.get("sequence"));
+        assertEquals("甘油", sequence.get(1).get("name"));
+        assertEquals(true, sequence.get(1).get("known"));
+    }
+
+    @Test
     void capsAt150Tokens() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 160; i++) {

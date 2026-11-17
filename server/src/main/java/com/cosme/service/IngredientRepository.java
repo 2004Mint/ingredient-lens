@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.*;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * 成分知识库。
@@ -28,6 +29,9 @@ public class IngredientRepository {
     private final ObjectMapper om = new ObjectMapper();
     private final Path dataDir;
     private final Path overrideFile;
+
+    /** 着色剂编号（Colour Index）：CI 77891、CI 77491、CI 15850:1。唯一标识，不做模糊匹配。 */
+    private static final Pattern COLOR_INDEX = Pattern.compile("(?i)CI\\s?[0-9]{4,5}(?::[0-9]{1,2})?");
 
     private volatile LibraryState state = new LibraryState(
             Collections.emptyList(), Collections.emptyList(), Collections.emptyMap(), Collections.emptyList());
@@ -205,10 +209,19 @@ public class IngredientRepository {
             if (hit != null) return hit;
         }
 
-        // 3) 包含匹配（要求候选名至少 3 个字符，避免单字误伤）
+        // 3) 包含匹配：只接受「名称 + 括号注释」这一种
+        //    以前 n.contains(name) 见名就认，结果「鲸蜡醇乙基己酸酯」被认成「鲸蜡醇」、
+        //    「生育酚乙酸酯」被认成「生育酚」、「…硬脂酸酯」被认成「硬脂酸」——
+        //    多出来的字往往就是另一种物质，报错比报错人更糟。括号里的注释已经由第 2 步处理。
+        //    着色剂编号同样不走模糊匹配：CI 77491 与 CI 77492 只差一位，一个红一个黄。
+        if (COLOR_INDEX.matcher(raw).matches()) return null;
         String n = norm(raw);
         for (String name : s.namesByLength) {
-            if (name.length() >= 3 && n.contains(name)) return s.index.get(name);
+            if (name.length() < 3 || !n.startsWith(name)) continue;
+            String rest = n.substring(name.length());
+            if (rest.isEmpty() || rest.startsWith("（") || rest.startsWith("(")) {
+                return s.index.get(name);
+            }
         }
 
         // 4) 编辑距离兜底：**只对纯拉丁名称生效**

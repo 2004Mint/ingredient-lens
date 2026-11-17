@@ -127,11 +127,23 @@ public class ExplainService {
 
         StringBuilder sb = new StringBuilder();
         sb.append(name.isEmpty() ? "这个成分" : name);
-        if (!role.isEmpty()) sb.append("在这瓶配方里属于").append(role).append("成分");
-        if (!tier.isEmpty()) sb.append("，位置在").append(tier);
-        sb.append("。");
+        boolean placed = false;
+        if (!role.isEmpty()) {
+            sb.append("在这瓶配方里属于").append(role).append("成分");
+            placed = true;
+        }
+        if (!tier.isEmpty()) {
+            sb.append(placed ? "，位置在" : "位置在").append(tier);
+            placed = true;
+        }
+        if (placed) sb.append("。");
         appendSentence(sb, function);
         appendSentence(sb, note);
+        // 名字之外什么都没有：多半是成分库还没收录。别只吐一个成分名当解释——
+        // 用户看到「CI 77891。」会以为页面坏了，而「没收录」本身就是一条有用的信息。
+        if (!placed && function.isEmpty() && note.isEmpty()) {
+            sb.append("：成分库里还没有它的记录，作用与风险暂时没有可靠结论，这里只能确认它出现在这份配方里。");
+        }
         return sb.toString();
     }
 
@@ -531,6 +543,10 @@ public class ExplainService {
         // 维生素B5、SPF50 这类「字母 + 数字」是名称/标示，和成分名同等待遇；
         // 不豁免的话，成分库里泛醇的作用说明会被改写成「维生素B五」再喂给模型。
         withoutNames = CODE_DIGITS.matcher(withoutNames).replaceAll("");
+        // 着色剂编号：CI 77891、CI 77491、CI 15850:1。数字就是名字本身，
+        // 不豁免的话，凡是带 CI 号的成分（彩妆几乎全都有）都解释不出来。
+        withoutNames = COLOR_CODE.matcher(withoutNames).replaceAll("");
+        withoutNames = COLOR_NAME.matcher(withoutNames).replaceAll("");
         if (DIGITS.matcher(withoutNames).find()) return "出现了数字或百分比";
         for (String word : BANNED) {
             if (text.contains(word)) return "出现了医疗用语「" + word + "」";
@@ -544,6 +560,14 @@ public class ExplainService {
 
     /** 带字母的代号：维生素B5、B3、SPF50、C10。它们是名称的一部分，不是浓度。 */
     private static final Pattern CODE_DIGITS = Pattern.compile("[A-Za-z][0-9]{1,2}");
+
+    /** 着色剂编号：CI 77891 / CI77491 / CI 15850:1。彩妆配方里几乎每条都带，必须能说出来。 */
+    private static final Pattern COLOR_CODE = Pattern.compile("(?i)\\bCI\\s?[0-9]{4,5}(?::[0-9]{1,2})?");
+
+    /** 色素旧称：FD&C Yellow 5、D&C Red 33、Yellow 5。同样是名字，不是数值。 */
+    private static final Pattern COLOR_NAME = Pattern.compile(
+            "(?i)\\b(?:FD&C|D&C)?\\s*(?:yellow|red|blue|green|orange|violet|black|brown)"
+                    + "\\s*(?:no\\.?\\s*)?[0-9]{1,3}\\b");
 
     /**
      * 闸门只因为数字没过时，先试着把数字改写成中文再说。
@@ -663,7 +687,7 @@ public class ExplainService {
     /** 给用户看的拦截原因：不出现「闸门」「越界」这类内部说法 */
     private static String friendly(String violation) {
         if (violation == null) return "";
-        if (violation.startsWith("出现了数字")) return "解释里出现了具体数字";
+        if (violation.startsWith("出现了数字")) return "解释里带了具体数值";
         if (violation.startsWith("出现了医疗用语")) return "解释越过了医疗边界";
         if (violation.equals("内容过长") || violation.equals("内容过短")) return "解释长度不合适";
         return violation;

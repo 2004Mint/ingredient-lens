@@ -146,6 +146,18 @@ class ExplainGuardTest {
     }
 
     @Test
+    @DisplayName("放行：着色剂编号 CI 77891 是名称，不是浓度")
+    void passesColorIndex() {
+        assertNull(ExplainService.guard(
+                "CI 77891 在这瓶配方里排在第三位，位置属于配方前段，是白色颜料与物理防晒剂。"));
+        assertNull(ExplainService.guard(
+                "CI 15850:1 与 CI 77491 都属于着色剂，直到配方后段才出现，主要用来调色。"));
+        // 编号豁免不能顺带放过真正的浓度声明
+        assertNotNull(ExplainService.guard("这些着色剂占到 5% 左右，属于正常范围。"));
+        assertNotNull(ExplainService.guard("CI 77891 的添加量通常在 3 克以上，具体看配方。"));
+    }
+
+    @Test
     @DisplayName("settle：能过就原样用，只差数字就改写，其他一律回退")
     void settlePicksBest() {
         assertEquals(OK_TEXT, ExplainService.settle(OK_TEXT));

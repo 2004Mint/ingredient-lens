@@ -197,12 +197,16 @@ public class ResearchService {
         ObjectNode payload = om.createObjectNode();
         payload.put("model", cfg.model);
         payload.put("temperature", 0.1);
-        payload.put("max_tokens", 900);
+        // 强制作答时把预算抬到 3000：这个模型会先写一大段推理，900 的额度全被推理吃掉，
+        // 最后 content 是空的，研究任务于是报「返回了空内容」。实测 3000 才够推理 + JSON。
+        payload.put("max_tokens", toolMode == TOOL_NONE ? 3000 : 900);
 
         ArrayNode messages = payload.putArray("messages");
         ObjectNode sys = messages.addObject();
         sys.put("role", "system");
-        sys.put("content", SYSTEM_PROMPT + "\n你可以先调用工具核对成分库里的事实，再输出 JSON。");
+        sys.put("content", SYSTEM_PROMPT + (toolMode == TOOL_NONE
+                ? "\n工具已关闭，请直接输出 JSON 草稿，不要再调用任何工具。"
+                : "\n你可以先调用工具核对成分库里的事实，再输出 JSON。"));
 
         ObjectNode user = messages.addObject();
         user.put("role", "user");
@@ -230,11 +234,13 @@ public class ResearchService {
             }
         }
 
-        if (toolMode != TOOL_OFF) {
+        if (toolMode == TOOL_AUTO) {
+            // 只有 AUTO 才把工具定义发上去。以前 NONE 也发 tools + tool_choice:"none"，
+            // 但这个网关会忽略 tool_choice，模型照样返回 tool_calls，
+            // Agent 只能判「已关闭工具仍请求工具」——研究任务就卡在这里失败三次。
             try {
                 payload.set("tools", om.readTree(TOOLS_JSON));
-                // none = 保留工具定义但禁止模型调用，用于「工具次数用完后强制它作答」
-                payload.put("tool_choice", toolMode == TOOL_NONE ? "none" : "auto");
+                payload.put("tool_choice", "auto");
             } catch (Exception ignore) {
                 // JSON 常量写错了也不该影响主流程
             }
