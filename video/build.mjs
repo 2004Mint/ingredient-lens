@@ -116,7 +116,8 @@ const SETUP = {
   s4: [{ waitFor: '#report-top' }, { wait: 700 }],
   s5: [{ waitFor: '#report-top' }, { wait: 700 }],
   s8: [
-    { eval: `sessionStorage.setItem('cosme:admin-token','${process.env.ADMIN_TOKEN || ''}');location.reload()` },
+    // 真实令牌不写进仓库：这里放占位符，build 时另生成 full.run.yaml（已 gitignore）
+    { eval: `sessionStorage.setItem('cosme:admin-token','__ADMIN_TOKEN__');location.reload()` },
     { wait: 1200 },
     { waitFor: 'text=研究任务' },
   ],
@@ -157,7 +158,14 @@ for (const s of segs) {
   // 收尾等待：确保镜头长于目标，交给 timeline 裁切
   yaml.push(`      - wait: ${Math.round((s.T + 2.0) * 1000)}`);
 }
-fs.writeFileSync(path.join(ROOT, 'shots', 'full.yaml'), yaml.join('\n') + '\n');
+const yamlText = yaml.join('\n') + '\n';
+fs.writeFileSync(path.join(ROOT, 'shots', 'full.yaml'), yamlText);
+// 录制用副本：把一次性管理令牌替换进去；这个文件在 .gitignore 里
+const token = process.env.ADMIN_TOKEN || '';
+if (token) {
+  fs.writeFileSync(path.join(ROOT, 'shots', 'full.run.yaml'),
+    yamlText.replace(/__ADMIN_TOKEN__/g, token));
+}
 
 function q(s) {
   return "'" + String(s).replace(/'/g, "''") + "'";

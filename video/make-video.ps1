@@ -25,7 +25,7 @@ node build.mjs
 
 # 2) 录制
 Write-Output '--- recording ---'
-node $cd record shots/full.yaml 2> 'record.log'
+node $cd record shots/full.run.yaml 2> 'record.log'
 if ($LASTEXITCODE -ne 0) { Get-Content 'record.log' -Tail 25; throw 'record failed' }
 
 # 3) 渲染（硬切）

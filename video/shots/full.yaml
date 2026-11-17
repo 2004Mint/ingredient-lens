@@ -116,7 +116,7 @@ shots:
   - id: s8
     url: http://127.0.0.1:5173/#/admin
     setup:
-      - eval: 'sessionStorage.setItem(''cosme:admin-token'',''697d5cc9cf2a428ca922f9c80719fa68'');location.reload()'
+      - eval: 'sessionStorage.setItem(''cosme:admin-token'',''__ADMIN_TOKEN__'');location.reload()'
       - wait: 1200
       - waitFor: 'text=研究任务'
     actions:
